@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "304575978672",
+    "project_id": "agridiscan",
+    "storage_bucket": "agridiscan.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:304575978672:android:beda2a44ffe4485bf6af75",
+        "android_client_info": {
+          "package_name": "com.example.test_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmKuOxHk_vVPaRchhKREXU7xV-ocoG968"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
