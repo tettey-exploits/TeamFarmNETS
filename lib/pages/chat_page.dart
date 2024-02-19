@@ -3,6 +3,7 @@ import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
 import 'package:test_1/Chat_gpt_API/consts.dart';
 import 'package:test_1/Components/weather_start_btn.dart';
+//import 'package:flutter_sound/flutter_sound.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -14,7 +15,6 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-
   final OpenAI _openAI = OpenAI.instance.build(
     token: OPENAI_API_KEY,
     baseOption: HttpSetup(
@@ -30,6 +30,10 @@ class _ChatPageState extends State<ChatPage> {
 
   final List<ChatMessage> _messages = <ChatMessage>[];
   final TextEditingController _textEditingController = TextEditingController();
+
+  void _startRecording() async {
+    //String path = await
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,45 +76,58 @@ class _ChatPageState extends State<ChatPage> {
               children: [
                 DashChat(
                   currentUser: _currentUser,
-                  messageOptions: const MessageOptions(currentUserContainerColor: Colors.green),
-                  onSend: (ChatMessage m) {getChatMessage(m);},
+                  messageOptions: const MessageOptions(
+                      currentUserContainerColor: Colors.green),
+                  onSend: (ChatMessage m) {
+                    getChatMessage(m);
+                  },
                   messages: _messages,
+                  inputOptions: InputOptions(
+                    inputDisabled: true,
+                      inputDecoration: InputDecoration(
+                          suffixIcon: IconButton(
+                    icon: const Icon(Icons.mic),
+                    onPressed: () {},
+                  ))),
                 ),
                 Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset(
-                        'assets/weather_icon.jpg',
-                        width: 220,
-                        height: 220,
-                      ),
-                      const Text(
-                        'Weather',
-                        style: TextStyle(
-                          fontSize: 35,
-                          fontWeight: FontWeight.bold,
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/weather_icon.jpg',
+                          width: 220,
+                          height: 220,
                         ),
-                      ),
-                      const Text(
-                        'ForeCasts',
-                        style: TextStyle(
-                          fontSize: 35,
-                          color: Colors.amber,
+                        const Text(
+                          'Weather',
+                          style: TextStyle(
+                            fontSize: 35,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 25),
-                      WeatherStartButton(
-                        text: "Get Started",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const ChatPage()),
-                          );
-                        },
-                      ),
-                    ],
+                        const Text(
+                          'ForeCasts',
+                          style: TextStyle(
+                            fontSize: 35,
+                            color: Colors.amber,
+                          ),
+                        ),
+                        const SizedBox(height: 25),
+                        WeatherStartButton(
+                          text: "Get Started",
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const ChatPage()),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
