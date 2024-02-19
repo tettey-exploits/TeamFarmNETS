@@ -29,11 +29,10 @@ class _ChatPageState extends State<ChatPage> {
       ChatUser(id: '2', firstName: 'Farm', lastName: 'NETS');
 
   final List<ChatMessage> _messages = <ChatMessage>[];
-  final TextEditingController _textEditingController = TextEditingController();
 
-  void _startRecording() async {
+ /* void _startRecording() async {
     //String path = await
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -76,19 +75,28 @@ class _ChatPageState extends State<ChatPage> {
               children: [
                 DashChat(
                   currentUser: _currentUser,
-                  messageOptions: const MessageOptions(
-                      currentUserContainerColor: Colors.green),
-                  onSend: (ChatMessage m) {
-                    getChatMessage(m);
-                  },
+                  messageOptions: const MessageOptions( currentUserContainerColor: Colors.green ),
+                  onSend: (ChatMessage m) { getChatMessage(m); },
                   messages: _messages,
                   inputOptions: InputOptions(
-                    inputDisabled: true,
-                      inputDecoration: InputDecoration(
-                          suffixIcon: IconButton(
-                    icon: const Icon(Icons.mic),
-                    onPressed: () {},
-                  ))),
+                    textCapitalization: TextCapitalization.sentences,
+                    inputDecoration: InputDecoration(
+                      border: OutlineInputBorder(
+                          borderSide: const BorderSide(width: 0.5),
+                          borderRadius: BorderRadius.circular(20)),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      hintText: "Type a message...",
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      prefixIcon: IconButton(
+                          icon: const Icon(Icons.camera_alt_outlined),
+                          onPressed: () {}),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.mic),
+                        onPressed: () {},
+                      ),
+                    ),
+                  ),
                 ),
                 Center(
                   child: SingleChildScrollView(
@@ -143,7 +151,7 @@ class _ChatPageState extends State<ChatPage> {
       _messages.insert(0, m);
     });
 
-    // Dummy response in wait of Chatgpt API
+    // Dummy response in wait of ChatGPT API
     String dummyResponse = "Welcome to FarmNETS";
 
     setState(() {

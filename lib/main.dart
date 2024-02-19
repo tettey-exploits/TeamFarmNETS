@@ -1,6 +1,6 @@
-import 'package:firebase_core/firebase_core.dart';
+//import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:test_1/Themes/Light_mode.dart';
+import 'package:test_1/Themes/light_mode.dart';
 import 'package:test_1/pages/chat_page.dart';
 
 
@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: LightMode, // Assuming LightMode is a ThemeData object
+      theme: lightMode, // Assuming LightMode is a ThemeData object
       home: const ChatPage(),
     );
   }
