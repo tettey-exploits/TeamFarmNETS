@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:test_1/Themes/Light_mode.dart';
-import 'package:test_1/pages/Chat_page.dart';
+import 'package:test_1/pages/chat_page.dart';
 
 
 
@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: LightMode, // Assuming LightMode is a ThemeData object
-      home: const HomePage(),
+      home: const ChatPage(),
     );
   }
 }
