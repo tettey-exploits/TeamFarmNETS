@@ -6,16 +6,13 @@ import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:test_1/Chat_gpt_API/consts.dart';
-
-//import 'package:test_1/Components/weather_start_btn.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
-
-  void handleWeather() {}
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -59,14 +56,12 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void _sendImageMessage() {
-    if (kDebugMode) {
-      print("SendImageMessage method called.");
-    }
-    if (kDebugMode) {
-      print("Path: ${imageFile!.path}\n");
-    }
+  void _sendImageMessage() async {
     if (imageFile != null) {
+      final directory = await getApplicationDocumentsDirectory();
+      final imagePath = '${directory.path}/image_${DateTime.now()}.png';
+      await imageFile!.copy(imagePath);
+
       final media = ChatMedia(
         url: imageFile!.path,
         type: MediaType.image,
@@ -124,6 +119,14 @@ class _ChatPageState extends State<ChatPage> {
       setState(() {
         isRecording = false;
         audioPath = path!;
+      });
+
+      final directory = await getApplicationDocumentsDirectory();
+      final audioFilePath = '${directory.path}/audio_${DateTime.now()}.mp3';
+      await File(audioPath).copy(audioFilePath);
+
+      setState(() {
+        audioPath = audioFilePath;
       });
     } catch (e) {
       if (kDebugMode) {
@@ -198,8 +201,8 @@ class _ChatPageState extends State<ChatPage> {
                           children: [
                             IconButton(
                                 icon: isRecording
-                                    ? const Icon(Icons.mic)
-                                    : const Icon(Icons.stop),
+                                    ? const Icon(Icons.stop)
+                                    : const Icon(Icons.mic),
                                 onPressed: isRecording
                                     ? stopRecording
                                     : startRecording),
