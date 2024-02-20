@@ -1,9 +1,15 @@
+import 'dart:io';
+
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
+import 'package:flutter/foundation.dart';
+
+//import 'package:firebase_storage/firebase_storage.dart';
+//import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:test_1/Chat_gpt_API/consts.dart';
 import 'package:test_1/Components/weather_start_btn.dart';
-//import 'package:flutter_sound/flutter_sound.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -30,9 +36,53 @@ class _ChatPageState extends State<ChatPage> {
 
   final List<ChatMessage> _messages = <ChatMessage>[];
 
- /* void _startRecording() async {
-    //String path = await
-  }*/
+  File? imageFile;
+  bool isLoading = false;
+  String imageUrl = "";
+
+  void _capturePhoto() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    if (kDebugMode) {
+      print("Picked file: ${pickedFile?.path}");
+    }
+      if (pickedFile != null) {
+        setState(() {
+          imageFile = File(pickedFile.path);
+        });
+        _sendImageMessage();
+      }
+    else {
+      if (kDebugMode) {
+        print("Picked file is null\n");
+      }
+    }
+  }
+
+  void _sendImageMessage() {
+    if (kDebugMode) {
+      print("SendImageMessage method called.");
+    }
+    if (kDebugMode) {
+      print("Path: ${imageFile!.path}\n");
+    }
+    if (imageFile != null) {
+      final media = ChatMedia(
+        url: imageFile!.path,
+        type: MediaType.image,
+        fileName: 'test_file',
+      );
+      final message = ChatMessage(
+        user: _currentUser,
+        createdAt: DateTime.now(),
+        medias: [media],
+      );
+      setState(() {
+        _messages.insert(0, message);
+        imageFile = null; // Reset imageFile after sending
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,8 +125,11 @@ class _ChatPageState extends State<ChatPage> {
               children: [
                 DashChat(
                   currentUser: _currentUser,
-                  messageOptions: const MessageOptions( currentUserContainerColor: Colors.green ),
-                  onSend: (ChatMessage m) { getChatMessage(m); },
+                  messageOptions: const MessageOptions(
+                      currentUserContainerColor: Colors.green),
+                  onSend: (ChatMessage m) {
+                    getChatMessage(m);
+                  },
                   messages: _messages,
                   inputOptions: InputOptions(
                     textCapitalization: TextCapitalization.sentences,
@@ -90,11 +143,9 @@ class _ChatPageState extends State<ChatPage> {
                       hintStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: IconButton(
                           icon: const Icon(Icons.camera_alt_outlined),
-                          onPressed: () {}),
+                          onPressed: _capturePhoto),
                       suffixIcon: IconButton(
-                        icon: const Icon(Icons.mic),
-                        onPressed: () {},
-                      ),
+                          icon: const Icon(Icons.mic), onPressed: () {}),
                     ),
                   ),
                 ),
