@@ -15,10 +15,10 @@ class WeatherStartButton extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.green.shade400,
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(100),
         ),
         padding: const EdgeInsets.all(25),
-        margin: const EdgeInsets.symmetric(horizontal: 60),
+        margin: const EdgeInsets.symmetric(horizontal: 150),
       
         child: Center(
           child: Text(text),

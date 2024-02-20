@@ -1,14 +1,15 @@
+//import 'dart:html';
 import 'dart:io';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/foundation.dart';
-
-//import 'package:firebase_storage/firebase_storage.dart';
-//import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:record/record.dart';
 import 'package:test_1/Chat_gpt_API/consts.dart';
-import 'package:test_1/Components/weather_start_btn.dart';
+
+//import 'package:test_1/Components/weather_start_btn.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ChatPage extends StatefulWidget {
@@ -46,13 +47,12 @@ class _ChatPageState extends State<ChatPage> {
     if (kDebugMode) {
       print("Picked file: ${pickedFile?.path}");
     }
-      if (pickedFile != null) {
-        setState(() {
-          imageFile = File(pickedFile.path);
-        });
-        _sendImageMessage();
-      }
-    else {
+    if (pickedFile != null) {
+      setState(() {
+        imageFile = File(pickedFile.path);
+      });
+      _sendImageMessage();
+    } else {
       if (kDebugMode) {
         print("Picked file is null\n");
       }
@@ -81,6 +81,65 @@ class _ChatPageState extends State<ChatPage> {
         _messages.insert(0, message);
         imageFile = null; // Reset imageFile after sending
       });
+    }
+  }
+
+  late Record audioRecord;
+  late AudioPlayer audioPlayer;
+  bool isRecording = false;
+  String audioPath = '';
+
+  @override
+  void initState() {
+    super.initState();
+    audioPlayer = AudioPlayer();
+    audioRecord = Record();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    audioPlayer.dispose();
+    audioRecord.dispose();
+  }
+
+  Future<void> startRecording() async {
+    try {
+      if (await audioRecord.hasPermission()) {
+        await audioRecord.start();
+        setState(() {
+          isRecording = true;
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error Start Recording : $e');
+      }
+    }
+  }
+
+  Future<void> stopRecording() async {
+    try {
+      String? path = await audioRecord.stop();
+      setState(() {
+        isRecording = false;
+        audioPath = path!;
+      });
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error Stopping Record: $e');
+      }
+    }
+  }
+
+  Future<void> playRecording() async {
+    try {
+      Source urlSource = UrlSource(audioPath);
+      await audioPlayer.play(urlSource);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error playing Recording: $e');
+      }
     }
   }
 
@@ -132,6 +191,25 @@ class _ChatPageState extends State<ChatPage> {
                   },
                   messages: _messages,
                   inputOptions: InputOptions(
+                    leading: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Row(
+                          children: [
+                            IconButton(
+                                icon: isRecording
+                                    ? const Icon(Icons.mic)
+                                    : const Icon(Icons.stop),
+                                onPressed: isRecording
+                                    ? stopRecording
+                                    : startRecording),
+                            IconButton(
+                                onPressed: playRecording,
+                                icon: const Icon(Icons.play_arrow))
+                          ],
+                        ),
+                      )
+                    ],
                     textCapitalization: TextCapitalization.sentences,
                     inputDecoration: InputDecoration(
                       border: OutlineInputBorder(
@@ -144,8 +222,6 @@ class _ChatPageState extends State<ChatPage> {
                       prefixIcon: IconButton(
                           icon: const Icon(Icons.camera_alt_outlined),
                           onPressed: _capturePhoto),
-                      suffixIcon: IconButton(
-                          icon: const Icon(Icons.mic), onPressed: () {}),
                     ),
                   ),
                 ),
@@ -168,27 +244,25 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                         ),
                         const Text(
-                          'ForeCasts',
+                          'Forecasts',
                           style: TextStyle(
                             fontSize: 35,
                             color: Colors.amber,
                           ),
                         ),
-                        const SizedBox(height: 25),
-                        WeatherStartButton(
-                          text: "Get Started",
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const ChatPage()),
-                            );
-                          },
-                        ),
+                        const SizedBox(height: 40),
+                        ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => const ChatPage()));
+                            },
+                            child: const Icon(Icons.speaker_phone_outlined)),
                       ],
                     ),
                   ),
-                ),
+                )
               ],
             )),
           ],
