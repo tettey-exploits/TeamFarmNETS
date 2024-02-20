@@ -258,7 +258,18 @@ class _ChatPageState extends State<ChatPage> {
                                   MaterialPageRoute(
                                       builder: (context) => const ChatPage()));
                             },
-                            child: const Icon(Icons.speaker_phone_outlined)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.secondary,
+                              shape: const CircleBorder(),
+                              minimumSize: const Size(80, 80),
+                              elevation: 6,
+                            ),
+                            child: const Icon(
+                              Icons.multitrack_audio,
+                              color: Colors.white,
+                              size: 40,
+                            )),
                       ],
                     ),
                   ),
