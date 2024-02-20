@@ -10,6 +10,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:test_1/Chat_gpt_API/consts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:test_1/Components/services/weather_service.dart';
+import 'package:test_1/Components/weather_model.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -19,6 +21,31 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
+  // api key
+  final _weatherService = WeatherService('51b6adfd3b1af06d26e10abacb4a3813');
+  Weather? _weather;
+
+  // fetch weather
+  _fetchWeather() async {
+    // get the current city
+    String cityName = await _weatherService.getCurrentCity();
+    // get weather for city
+    try {
+      final weather = await _weatherService.getWeather(cityName);
+      setState(() {
+        _weather = weather;
+      });
+    }
+    // any errors
+    catch (e) {
+      print(e);
+    }
+  }
+
+  // weather animation
+
+  //init State
+
   final OpenAI _openAI = OpenAI.instance.build(
     token: OPENAI_API_KEY,
     baseOption: HttpSetup(
@@ -89,6 +116,8 @@ class _ChatPageState extends State<ChatPage> {
     super.initState();
     audioPlayer = AudioPlayer();
     audioRecord = Record();
+    // fetch weather on startup
+    _fetchWeather();
   }
 
   @override
@@ -273,6 +302,10 @@ class _ChatPageState extends State<ChatPage> {
                               color: Colors.white,
                               size: 40,
                             )),
+                        const SizedBox(height: 20),
+
+                        Text(_weather?.cityName ?? "Loading... city"),
+                        Text('${_weather?.temperature.round()}*C'),
                       ],
                     ),
                   ),
