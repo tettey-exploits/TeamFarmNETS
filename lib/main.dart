@@ -1,7 +1,7 @@
-//import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:test_1/Themes/light_mode.dart';
 import 'package:test_1/pages/chat_page.dart';
+//import 'package:test_1/pages/chat_page_2.dart';
 
 
 

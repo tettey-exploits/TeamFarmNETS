@@ -1,6 +1,4 @@
-//import 'dart:html';
 import 'dart:io';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
@@ -12,6 +10,7 @@ import 'package:test_1/Chat_gpt_API/consts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:test_1/Components/services/weather_service.dart';
 import 'package:test_1/Components/weather_model.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -83,6 +82,24 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  Future<String> createFolder(String cow) async {
+    final dir = Directory('${(Platform.isAndroid
+        ? await getExternalStorageDirectory() //FOR ANDROID
+        : await getApplicationSupportDirectory() //FOR IOS
+    )!
+        .path}/$cow');
+    var status = await Permission.storage.status;
+    if (!status.isGranted) {
+      await Permission.storage.request();
+    }
+    if ((await dir.exists())) {
+      return dir.path;
+    } else {
+      dir.create();
+      return dir.path;
+    }
+  }
+
   void _sendImageMessage() async {
     if (imageFile != null) {
       final directory = await getApplicationDocumentsDirectory();
@@ -103,6 +120,7 @@ class _ChatPageState extends State<ChatPage> {
         _messages.insert(0, message);
         imageFile = null; // Reset imageFile after sending
       });
+      createFolder('Images');
     }
   }
 
@@ -149,14 +167,7 @@ class _ChatPageState extends State<ChatPage> {
         isRecording = false;
         audioPath = path!;
       });
-
-      final directory = await getApplicationDocumentsDirectory();
-      final audioFilePath = '${directory.path}/audio_${DateTime.now()}.mp3';
-      await File(audioPath).copy(audioFilePath);
-
-      setState(() {
-        audioPath = audioFilePath;
-      });
+      createFolder('audio_recorded');
     } catch (e) {
       if (kDebugMode) {
         print('Error Stopping Record: $e');
