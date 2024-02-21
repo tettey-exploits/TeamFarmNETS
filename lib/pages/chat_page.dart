@@ -15,6 +15,9 @@ import 'package:test_1/Components/weather_model.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../Components/services/Text_translator.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:image/image.dart' as Imagi;
+
+import '../components/services/Text_to_speech.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -28,7 +31,9 @@ class _ChatPageState extends State<ChatPage> {
   final _weatherService = WeatherService('51b6adfd3b1af06d26e10abacb4a3813');
   Weather? _weather;
 
-  final _textTranslate = TextTranslator('2c524c9c68ab4e2da999a3f9d641ba5d#');
+  final _textTranslate = TextTranslator('2c524c9c68ab4e2da999a3f9d641ba5d');
+
+  final _textSpeech = SpeechToText('2c524c9c68ab4e2da999a3f9d641ba5d');
 
   _fetchWeather() async {
     // get the current city
@@ -48,21 +53,25 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  String weatherText = '';
   void _fetchTranslator() async {
     try {
-      final weather = await _textTranslate.translateText(weatherText);
+      final weather = await _textTranslate.translateText("It is rainy, the temperature is 40 degrees Celsius");
+      _textSpeech.speechText(weather);
+      const textSpeechPath =
+          "/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/Weather_voice.wav";
+      playRecording(pathToAudio: textSpeechPath);
       if (kDebugMode) {
         print(weather);
+        print(textSpeechPath);
       }
-    }
-    // any errors
-    catch (e) {
+    } catch (e) {
       if (kDebugMode) {
         print(e);
       }
     }
   }
-  String weatherText = 'I am a boy.' ;
+
 
   String getWeatherAnimation(String? mainConditions) {
     if (mainConditions == null) return 'assets/sunny_animation.json';
@@ -103,6 +112,7 @@ class _ChatPageState extends State<ChatPage> {
   File? imageFile;
   bool isLoading = false;
   String imageUrl = "";
+  File? controlImage;
 
   void _capturePhoto() async {
     final picker = ImagePicker();
@@ -122,11 +132,11 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<String> createFolder(String cow) async {
+  Future<String> createFolder(String dirName) async {
     final dir = Directory(
         '${(Platform.isAndroid ? await getExternalStorageDirectory() //FOR ANDROID
                 : await getApplicationSupportDirectory() //FOR IOS
-            )!.path}/$cow');
+            )!.path}/$dirName');
     var status = await Permission.storage.status;
     if (!status.isGranted) {
       await Permission.storage.request();
@@ -144,6 +154,8 @@ class _ChatPageState extends State<ChatPage> {
       /*final directory = await getApplicationDocumentsDirectory();
       final imagePath = '${directory.path}/image_${DateTime.now()}.png';
       await imageFile!.copy(imagePath);*/
+
+      controlImage = File(imageFile!.path);
 
       final media = ChatMedia(
         url: imageFile!.path,
@@ -207,7 +219,7 @@ class _ChatPageState extends State<ChatPage> {
         isRecording = false;
         audioPath = path!;
       });
-      createFolder('audio_recorded');
+      createFolder('audio');
     } catch (e) {
       if (kDebugMode) {
         print('Error Stopping Record: $e');
@@ -215,10 +227,15 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> playRecording() async {
+  Future<void> playRecording({String? pathToAudio}) async {
     try {
-      Source urlSource = UrlSource(audioPath);
-      await audioPlayer.play(urlSource);
+      if (pathToAudio == null) {
+        Source urlSource = UrlSource(audioPath);
+        await audioPlayer.play(urlSource);
+      } else {
+        Source urlSource = UrlSource(pathToAudio);
+        await audioPlayer.play(urlSource);
+      }
     } catch (e) {
       if (kDebugMode) {
         print('Error playing Recording: $e');
@@ -245,7 +262,9 @@ class _ChatPageState extends State<ChatPage> {
     final labels = labelTxt.split('\n');
   }
 
-  Future<void> runInference(List<List<List<num>>> imageMatrix,) async {
+  Future<void> runInference(
+    List<List<List<num>>> imageMatrix,
+  ) async {
     final input = [imageMatrix];
 
     final output = [List<int>.filled(1001, 0)];
@@ -255,8 +274,35 @@ class _ChatPageState extends State<ChatPage> {
     final result = output.first;
   }
 
+  List<List<int>> imgArray = [];
+
+  void readImage() async {
+/*    final bytes = await controlImage!.readAsBytes();
+    final decoder = Imagi.JpegDecoder();
+    //final test = decoder.decode(bytes)
+    final decodedImg = decoder.decodeImage(bytes);
+    final decodedBytes = decodedImg!.getBytes(format: Imagi.Format.rgb);
+    // print(decodedBytes);
+    print(decodedBytes.length);
+
+    // int loopLimit = decodedImg.width;
+    int loopLimit =1000;
+    for(int x = 0; x < loopLimit; x++) {
+      int red = decodedBytes[decodedImg.width*3 + x*3];
+      int green = decodedBytes[decodedImg.width*3 + x*3 + 1];
+      int blue = decodedBytes[decodedImg.width*3 + x*3 + 2];
+      imgArray.add([red, green, blue]);
+    }
+    if (kDebugMode) {
+      print(imgArray);
+    }*/
+  }
+
   @override
   Widget build(BuildContext context) {
+    weatherText = 'At ${_weather?.cityName ?? "Loading... city"},'
+        ' \nThe Temperature for today is ${_weather?.temperature.round()}°C, '
+        '\n It is going to be ${_weather?.mainConditions ?? ""}.';
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -375,10 +421,7 @@ class _ChatPageState extends State<ChatPage> {
                               size: 40,
                             )),
                         const SizedBox(height: 20),
-                        Text(
-                            'At ${_weather?.cityName ?? "Loading... city"},'
-                                ' \nThe Temperature for today is ${_weather?.temperature.round()}°C, '
-                                '\n It is going to be ${_weather?.mainConditions ?? ""}.'),
+                        Text(weatherText),
                       ],
                     ),
                   ),
@@ -409,34 +452,5 @@ class _ChatPageState extends State<ChatPage> {
         ),
       );
     });
-
-    /*Message History
-    List<Messages> _messagesHistory = _messages.reversed.map((m) {
-      if (m.user == _currentUser) {
-        return Messages(role: Role.user, content: m.text);
-      } else {
-        return Messages(role: Role.assistant, content: m.text);
-      }
-    }).toList();
-    final request = ChatCompleteText(
-      model: GptTurbo0301ChatModel(),
-      messages: _messagesHistory,
-      maxToken: 200,
-    );
-    final response = await _OpenAI.onChatCompletion(request: request);
-    for (var element in response!.choices) {
-      if (element.message != null) {
-        setState(() {
-          _messages.insert(
-            0,
-            ChatMessage(
-              user: _gptChatUser,
-              createdAt: DateTime.now(),
-              text: element.message!.content,
-            ),
-          );
-        });
-      }
-    }*/
   }
 }
