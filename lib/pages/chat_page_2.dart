@@ -1,18 +1,18 @@
 import 'dart:io';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:record/record.dart';
 import 'package:test_1/Chat_gpt_API/consts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:test_1/components/classify_image.dart';
+import 'package:image/image.dart' as img;
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
-
-  void handleWeather() {}
 
   @override
   State<ChatPage> createState() => _ChatPageState();
@@ -37,6 +37,7 @@ class _ChatPageState extends State<ChatPage> {
   File? imageFile;
   bool isLoading = false;
   String imageUrl = "";
+  ClassifyImage classify = ClassifyImage();
 
   void _capturePhoto() async {
     final picker = ImagePicker();
@@ -48,6 +49,7 @@ class _ChatPageState extends State<ChatPage> {
       setState(() {
         imageFile = File(pickedFile.path);
       });
+      //classify.bitmapToByteBuffer(bitmap)
       _sendImageMessage();
     } else {
       if (kDebugMode) {
@@ -85,20 +87,6 @@ class _ChatPageState extends State<ChatPage> {
   late AudioPlayer audioPlayer;
   bool isRecording = false;
   String audioPath = '';
-
-  @override
-  void initState() {
-    super.initState();
-    audioPlayer = AudioPlayer();
-    audioRecord = Record();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    audioPlayer.dispose();
-    audioRecord.dispose();
-  }
 
   Future<void> startRecording() async {
     try {
@@ -138,6 +126,20 @@ class _ChatPageState extends State<ChatPage> {
         print('Error playing Recording: $e');
       }
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    audioPlayer = AudioPlayer();
+    audioRecord = Record();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    audioPlayer.dispose();
+    audioRecord.dispose();
   }
 
   @override

@@ -1,6 +1,5 @@
 
 import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../weather_model.dart';
