@@ -4,6 +4,7 @@ import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:test_1/Chat_gpt_API/consts.dart';
@@ -42,8 +43,26 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   // weather animation
-
-  //init State
+  String getWeatherAnimation(String? mainConditions) {
+    if (mainConditions == null) return 'assets/sunny_animation.json';
+    switch (mainConditions.toLowerCase()) {
+      case 'clouds':
+      case 'mist':
+      case 'haze':
+      case 'dust':
+        return 'assets/cloudy.json';
+      case 'rain':
+      case 'drizzle':
+      case 'shower rain':
+        return 'assets/rainy.json';
+      case 'thunderstorm':
+        return 'assets/thunderstorm.json';
+      case 'clear':
+        return 'assets/sunny_animation.json';
+      default:
+        return 'assets/sunny_animation.json';
+    }
+  }
 
   final OpenAI _openAI = OpenAI.instance.build(
     token: OPENAI_API_KEY,
@@ -83,11 +102,10 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<String> createFolder(String cow) async {
-    final dir = Directory('${(Platform.isAndroid
-        ? await getExternalStorageDirectory() //FOR ANDROID
-        : await getApplicationSupportDirectory() //FOR IOS
-    )!
-        .path}/$cow');
+    final dir = Directory(
+        '${(Platform.isAndroid ? await getExternalStorageDirectory() //FOR ANDROID
+                : await getApplicationSupportDirectory() //FOR IOS
+            )!.path}/$cow');
     var status = await Permission.storage.status;
     if (!status.isGranted) {
       await Permission.storage.request();
@@ -274,11 +292,8 @@ class _ChatPageState extends State<ChatPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Image.asset(
-                          'assets/weather_icon.jpg',
-                          width: 220,
-                          height: 220,
-                        ),
+                        Lottie.asset(
+                            getWeatherAnimation(_weather?.mainConditions)),
                         const Text(
                           'Weather',
                           style: TextStyle(
@@ -314,9 +329,10 @@ class _ChatPageState extends State<ChatPage> {
                               size: 40,
                             )),
                         const SizedBox(height: 20),
-
-                        Text(_weather?.cityName ?? "Loading... city"),
-                        Text('${_weather?.temperature.round()}*C'),
+                        Text(
+                            'At ${_weather?.cityName ?? "Loading... city"},'
+                                ' \nThe Temperature for today is ${_weather?.temperature.round()}°C, '
+                                '\n It is going to be ${_weather?.mainConditions ?? ""}.'),
                       ],
                     ),
                   ),

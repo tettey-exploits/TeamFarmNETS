@@ -92,6 +92,7 @@ flutter:
     - assets/AgridisScan_logo.png
     - assets/weather_icon.jpg
     - assets/background_weather.jpg
+    - assets/
 
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
