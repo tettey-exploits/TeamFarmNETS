@@ -4,6 +4,7 @@ import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -12,6 +13,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:test_1/Components/services/weather_service.dart';
 import 'package:test_1/Components/weather_model.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../Components/services/Text_translator.dart';
+import 'package:tflite_flutter/tflite_flutter.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -25,7 +28,8 @@ class _ChatPageState extends State<ChatPage> {
   final _weatherService = WeatherService('51b6adfd3b1af06d26e10abacb4a3813');
   Weather? _weather;
 
-  // fetch weather
+  final _textTranslate = TextTranslator('2c524c9c68ab4e2da999a3f9d641ba5d#');
+
   _fetchWeather() async {
     // get the current city
     String cityName = await _weatherService.getCurrentCity();
@@ -38,11 +42,28 @@ class _ChatPageState extends State<ChatPage> {
     }
     // any errors
     catch (e) {
-      print(e);
+      if (kDebugMode) {
+        print(e);
+      }
     }
   }
 
-  // weather animation
+  void _fetchTranslator() async {
+    try {
+      final weather = await _textTranslate.translateText(weatherText);
+      if (kDebugMode) {
+        print(weather);
+      }
+    }
+    // any errors
+    catch (e) {
+      if (kDebugMode) {
+        print(e);
+      }
+    }
+  }
+  String weatherText = 'I am a boy.' ;
+
   String getWeatherAnimation(String? mainConditions) {
     if (mainConditions == null) return 'assets/sunny_animation.json';
     switch (mainConditions.toLowerCase()) {
@@ -120,9 +141,9 @@ class _ChatPageState extends State<ChatPage> {
 
   void _sendImageMessage() async {
     if (imageFile != null) {
-      final directory = await getApplicationDocumentsDirectory();
+      /*final directory = await getApplicationDocumentsDirectory();
       final imagePath = '${directory.path}/image_${DateTime.now()}.png';
-      await imageFile!.copy(imagePath);
+      await imageFile!.copy(imagePath);*/
 
       final media = ChatMedia(
         url: imageFile!.path,
@@ -138,7 +159,7 @@ class _ChatPageState extends State<ChatPage> {
         _messages.insert(0, message);
         imageFile = null; // Reset imageFile after sending
       });
-      createFolder('Images');
+      createFolder('images');
     }
   }
 
@@ -154,6 +175,7 @@ class _ChatPageState extends State<ChatPage> {
     audioRecord = Record();
     // fetch weather on startup
     _fetchWeather();
+    _fetchTranslator();
   }
 
   @override
@@ -202,6 +224,35 @@ class _ChatPageState extends State<ChatPage> {
         print('Error playing Recording: $e');
       }
     }
+  }
+
+  late Interpreter interpreter;
+  late Tensor inputTensor;
+  late Tensor outputTensor;
+
+  Future<void> loadModel() async {
+    final options = InterpreterOptions();
+
+    interpreter = await Interpreter.fromAsset('assets/afiricoco.tflite');
+
+    inputTensor = interpreter.getInputTensors().first;
+
+    outputTensor = interpreter.getOutputTensors().first;
+  }
+
+  Future<void> loadLabels() async {
+    final labelTxt = await rootBundle.loadString('assets/labels.txt');
+    final labels = labelTxt.split('\n');
+  }
+
+  Future<void> runInference(List<List<List<num>>> imageMatrix,) async {
+    final input = [imageMatrix];
+
+    final output = [List<int>.filled(1001, 0)];
+
+    interpreter.run(input, output);
+
+    final result = output.first;
   }
 
   @override
@@ -310,12 +361,7 @@ class _ChatPageState extends State<ChatPage> {
                         ),
                         const SizedBox(height: 40),
                         ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => const ChatPage()));
-                            },
+                            onPressed: _fetchTranslator,
                             style: ElevatedButton.styleFrom(
                               backgroundColor:
                                   Theme.of(context).colorScheme.secondary,

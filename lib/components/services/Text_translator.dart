@@ -6,18 +6,30 @@ import 'package:geocoding/geocoding.dart';
 import '../weather_model.dart';
 import 'package:http/http.dart' as http;
 
-class WeatherService{
-  static const BASE_URL = 'http://api.openweathermap.org/data/2.5/weather';
+class TextTranslator{
+  static const BASE_URL = 'https://translation-api.ghananlp.org/v1/translate';
   final String apiKey;
 
-  WeatherService(this.apiKey);
+  TextTranslator(this.apiKey);
 
-  Future<Weather> getWeather(String cityName) async{
-    final response = await http.get(Uri.parse('$BASE_URL?q=$cityName&appid=$apiKey&units=metric'));
+  Future<String> translateText(String text, {String? targetLanguage}) async {
+    final response = await http.post(
+      Uri.parse(BASE_URL),
+        headers: {"Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+          "Ocp-Apim-Subscription-Key": apiKey
+        },
+        body: jsonEncode({
+          "in": text,
+          "lang": "en-tw"
+          })
+    );
+
     if(response.statusCode ==200){
-      return Weather.fromJson(jsonDecode(response.body));
+      return jsonDecode(response.body);
     } else {
-      throw Exception("Failed to load weather data");
+      return response.statusCode.toString();
+      //throw Exception("Failed to load weather data");
     }
   }
   Future<String> getCurrentCity() async{
