@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:ui';
+import 'dart:ui' as ui;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
@@ -13,11 +15,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:test_1/Components/services/weather_service.dart';
 import 'package:test_1/Components/weather_model.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:test_1/components/classify_image.dart';
+import 'package:tflite/tflite.dart';
 import '../Components/services/Text_translator.dart';
-import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as Imagi;
-import 'dart:ui' as ui;
-import 'dart:typed_data';
 
 import '../components/services/Text_to_speech.dart';
 
@@ -56,9 +57,11 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   String weatherText = '';
+
   void _fetchTranslator() async {
     try {
-      final weather = await _textTranslate.translateText("It is rainy, the temperature is 40 degrees Celsius");
+      final weather = await _textTranslate
+          .translateText("It is rainy, the temperature is 40 degrees Celsius");
       _textSpeech.speechText(weather);
       const textSpeechPath =
           "/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/Weather_voice.wav";
@@ -73,7 +76,6 @@ class _ChatPageState extends State<ChatPage> {
       }
     }
   }
-
 
   String getWeatherAnimation(String? mainConditions) {
     if (mainConditions == null) return 'assets/sunny_animation.json';
@@ -111,13 +113,41 @@ class _ChatPageState extends State<ChatPage> {
 
   final List<ChatMessage> _messages = <ChatMessage>[];
 
+  late bool _loading;
+  late List _outputs;
+
+  loadModel() async {
+    await Tflite.loadModel(
+      model: "assets/afiricoco.tflite",
+      labels: "assets/labels.txt",
+    );
+  }
+
+  classifyImage(File image) async {
+    var output = await Tflite.runModelOnImage(
+      path: imageFile!.path,
+      numResults: 2,
+      threshold: 0.5,
+      imageMean: 127.5,
+      imageStd: 127.5,
+    );
+
+    setState(() {
+      _loading = false;
+      _outputs = output!;
+    });
+    if (kDebugMode) {
+      print(_outputs);
+    }
+  }
+
+  final picker = ImagePicker();
   File? imageFile;
   bool isLoading = false;
   String imageUrl = "";
   File? controlImage;
 
   void _capturePhoto() async {
-    final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
     if (kDebugMode) {
       print("Picked file: ${pickedFile?.path}");
@@ -125,7 +155,9 @@ class _ChatPageState extends State<ChatPage> {
     if (pickedFile != null) {
       setState(() {
         imageFile = File(pickedFile.path);
+        _loading = true;
       });
+      classifyImage(imageFile!);
       _sendImageMessage();
     } else {
       if (kDebugMode) {
@@ -182,23 +214,6 @@ class _ChatPageState extends State<ChatPage> {
   bool isRecording = false;
   String audioPath = '';
 
-  @override
-  void initState() {
-    super.initState();
-    audioPlayer = AudioPlayer();
-    audioRecord = Record();
-    // fetch weather on startup
-    _fetchWeather();
-    _fetchTranslator();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    audioPlayer.dispose();
-    audioRecord.dispose();
-  }
-
   Future<void> startRecording() async {
     try {
       if (await audioRecord.hasPermission()) {
@@ -245,82 +260,30 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  late Interpreter interpreter;
-  late Tensor inputTensor;
-  late Tensor outputTensor;
+  @override
+  void initState() {
+    super.initState();
+    audioPlayer = AudioPlayer();
+    audioRecord = Record();
+    // fetch weather on startup
+    _fetchWeather();
+    _fetchTranslator();
 
-  Future<void> loadModel() async {
-    final options = InterpreterOptions();
-
-    interpreter = await Interpreter.fromAsset('assets/afiricoco.tflite');
-
-    inputTensor = interpreter.getInputTensors().first;
-
-    outputTensor = interpreter.getOutputTensors().first;
-  }
-
-  Future<void> loadLabels() async {
-    final labelTxt = await rootBundle.loadString('assets/labels.txt');
-    final labels = labelTxt.split('\n');
-  }
-
-  Future<void> runInference(
-    List<List<List<num>>> imageMatrix,
-  ) async {
-    final input = [imageMatrix];
-
-    final output = [List<int>.filled(1001, 0)];
-
-    interpreter.run(input, output);
-
-    final result = output.first;
-  }
-
-  List<List<int>> imgArray = [];
-  var imageSize = 255;
-  ByteBuffer bitmapToByteBuffer(ui.Image bitmap) {
-    // Create a ByteData to hold the bytes
-    final byteData = ByteData(4 * imageSize * imageSize * 3);
-    final byteBuffer = byteData.buffer;
-    final intValues = Int32List(imageSize * imageSize);
-    // Get the pixels from the bitmap as Uint32List
-    bitmap.toByteData(format: ui.ImageByteFormat.rawRgba).then((value) {
-      final buffer = value?.buffer;
-      final pixels = buffer?.asUint32List();
-      int pixelIndex = 0;
-      for (int i = 0; i < imageSize; i++) {
-        for (int j = 0; j < imageSize; j++) {
-          final val = pixels?[pixelIndex++]; // RGBA
-          byteData.setFloat32((pixelIndex - 1) * 12, (val! >> 16 & 0xFF) / 255.0, Endian.host);
-          byteData.setFloat32((pixelIndex - 1) * 12 + 4, (val >> 8 & 0xFF) / 255.0, Endian.host);
-          byteData.setFloat32((pixelIndex - 1) * 12 + 8, (val & 0xFF) / 255.0, Endian.host);
-        }
-      }
+    // AI Model
+    _loading = true;
+    loadModel().then((value) {
+      setState(() {
+        _loading = false;
+      });
     });
-    return byteBuffer;
   }
 
-  /*void readImage() async {
-    final bytes = await controlImage!.readAsBytes();
-    final decoder = Imagi.JpegDecoder();
-    //final test = decoder.decode(bytes)
-    final decodedImg = decoder.decodeImage(bytes);
-    final decodedBytes = decodedImg!.getBytes(format: Imagi.Format.rgb);
-    // print(decodedBytes);
-    print(decodedBytes.length);
-
-    // int loopLimit = decodedImg.width;
-    int loopLimit =1000;
-    for(int x = 0; x < loopLimit; x++) {
-      int red = decodedBytes[decodedImg.width*3 + x*3];
-      int green = decodedBytes[decodedImg.width*3 + x*3 + 1];
-      int blue = decodedBytes[decodedImg.width*3 + x*3 + 2];
-      imgArray.add([red, green, blue]);
-    }
-    if (kDebugMode) {
-      print(imgArray);
-    }
-  }*/
+  @override
+  void dispose() {
+    super.dispose();
+    audioPlayer.dispose();
+    audioRecord.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

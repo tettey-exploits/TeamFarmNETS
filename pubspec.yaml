@@ -50,8 +50,9 @@ dependencies:
   geocoding: ^2.2.0
   lottie: ^3.0.0
   permission_handler: ^11.3.0
-  tflite_flutter: ^0.10.4
   image: ^4.1.7
+  bitmap: ^0.2.0
+  tflite: ^1.1.2
   #flutter_tflite: ^1.0.1
 
 dev_dependencies:

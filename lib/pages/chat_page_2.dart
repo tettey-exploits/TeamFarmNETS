@@ -50,6 +50,7 @@ class _ChatPageState extends State<ChatPage> {
         imageFile = File(pickedFile.path);
       });
       //classify.bitmapToByteBuffer(bitmap)
+      classify.fileToImage(imageFile!);
       _sendImageMessage();
     } else {
       if (kDebugMode) {
