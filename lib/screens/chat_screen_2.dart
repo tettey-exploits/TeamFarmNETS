@@ -26,6 +26,18 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
+
+  Future<void> _playWelcomeNote() async {
+    const welcomeNotePath = '/storage/emulated/0/Android/data/com.example.test_1/files/audio/welcome_note_3.wav';
+    try {
+      Source urlSource = UrlSource(welcomeNotePath);
+      await audioPlayer.play(urlSource);
+        } catch (e) {
+      if (kDebugMode) {
+        print('Error playing Recording: $e');
+      }
+    }
+  }
   // api key
   final _weatherService = WeatherService('51b6adfd3b1af06d26e10abacb4a3813');
   Weather? _weather;
@@ -252,6 +264,7 @@ class _ChatPageState extends State<ChatPage> {
     _fetchWeather();
     _fetchTranslator();
     _callGenerativeModel();
+    _playWelcomeNote();
 
     // AI Model
     _loading = true;

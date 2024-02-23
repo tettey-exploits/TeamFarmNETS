@@ -25,12 +25,12 @@ class TryChat {
         mediaType: const MediaType.imageMediaType(),
       ),
     ),*/
-    /*ChatMessage(isSender: false, text: 'Welcome To FarmNETS'),*/
-    ChatMessage(
+   /* ChatMessage(
       isSender: false,
       chatMedia: ChatMedia(
           mediaType: const MediaType.audioMediaType(),
           url: '/storage/emulated/0/Android/data/com.example.test_1/files/audio/welcome_note_3.wav'),
-    )
+    )*/
+  ChatMessage(isSender: false, text: 'Akwaaba. Me din de Abena. meyɛ dɛn na aboa wo'),
   ];
 }
