@@ -1,15 +1,24 @@
+import 'dart:developer';
 import 'dart:io';
+import 'dart:ui';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
-import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:lottie/lottie.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:test_1/Chat_gpt_API/consts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:test_1/components/classify_image.dart';
-import 'package:image/image.dart' as img;
+import 'package:test_1/Components/services/weather_service.dart';
+import 'package:test_1/Components/weather_model.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:test_1/components/try_chat.dart';
+import 'package:tflite/tflite.dart';
+import '../Components/services/Text_translator.dart';
+import '../components/services/Text_to_speech.dart';
+import 'package:chat_package/chat_package.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -19,6 +28,74 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
+  // api key
+  final _weatherService = WeatherService('51b6adfd3b1af06d26e10abacb4a3813');
+  Weather? _weather;
+
+  final _textTranslate = TextTranslator('2c524c9c68ab4e2da999a3f9d641ba5d');
+
+  final _textSpeech = SpeechToText('2c524c9c68ab4e2da999a3f9d641ba5d');
+
+  _fetchWeather() async {
+    // get the current city
+    String cityName = await _weatherService.getCurrentCity();
+    // get weather for city
+    try {
+      final weather = await _weatherService.getWeather(cityName);
+      setState(() {
+        _weather = weather;
+      });
+    }
+    // any errors
+    catch (e) {
+      if (kDebugMode) {
+        print(e);
+      }
+    }
+  }
+
+  String weatherText = '';
+
+  void _fetchTranslator() async {
+    try {
+      final weather = await _textTranslate
+          .translateText("It is rainy, the temperature is 40 degrees Celsius");
+      _textSpeech.speechText(weather);
+      const textSpeechPath =
+          "/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/Weather_voice.wav";
+      playRecording(pathToAudio: textSpeechPath);
+      if (kDebugMode) {
+        print(weather);
+        print(textSpeechPath);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print(e);
+      }
+    }
+  }
+
+  String getWeatherAnimation(String? mainConditions) {
+    if (mainConditions == null) return 'assets/sunny_animation.json';
+    switch (mainConditions.toLowerCase()) {
+      case 'clouds':
+      case 'mist':
+      case 'haze':
+      case 'dust':
+        return 'assets/cloudy.json';
+      case 'rain':
+      case 'drizzle':
+      case 'shower rain':
+        return 'assets/rainy.json';
+      case 'thunderstorm':
+        return 'assets/thunderstorm.json';
+      case 'clear':
+        return 'assets/sunny_animation.json';
+      default:
+        return 'assets/sunny_animation.json';
+    }
+  }
+
   final OpenAI _openAI = OpenAI.instance.build(
     token: OPENAI_API_KEY,
     baseOption: HttpSetup(
@@ -27,20 +104,45 @@ class _ChatPageState extends State<ChatPage> {
     enableLog: true,
   );
 
-  final ChatUser _currentUser =
-  ChatUser(id: '1', firstName: 'User', lastName: 'Account');
-  final ChatUser _gptChatUser =
-  ChatUser(id: '2', firstName: 'Farm', lastName: 'NETS');
 
-  final List<ChatMessage> _messages = <ChatMessage>[];
+  final scrollController = ScrollController();
+  TryChat tryChat = TryChat();
 
+  late bool _loading;
+  late List _outputs;
+
+  loadModel() async {
+    await Tflite.loadModel(
+      model: "assets/afiricoco.tflite",
+      labels: "assets/labels.txt",
+    );
+  }
+
+  classifyImage(File image) async {
+    var output = await Tflite.runModelOnImage(
+      path: imageFile!.path,
+      numResults: 2,
+      threshold: 0.5,
+      imageMean: 127.5,
+      imageStd: 127.5,
+    );
+
+    setState(() {
+      _loading = false;
+      _outputs = output!;
+    });
+    if (kDebugMode) {
+      print(_outputs);
+    }
+  }
+
+  final picker = ImagePicker();
   File? imageFile;
   bool isLoading = false;
   String imageUrl = "";
-  ClassifyImage classify = ClassifyImage();
+  File? controlImage;
 
   void _capturePhoto() async {
-    final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
     if (kDebugMode) {
       print("Picked file: ${pickedFile?.path}");
@@ -48,9 +150,9 @@ class _ChatPageState extends State<ChatPage> {
     if (pickedFile != null) {
       setState(() {
         imageFile = File(pickedFile.path);
+        _loading = true;
       });
-      //classify.bitmapToByteBuffer(bitmap)
-      classify.fileToImage(imageFile!);
+      classifyImage(imageFile!);
       _sendImageMessage();
     } else {
       if (kDebugMode) {
@@ -59,28 +161,35 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void _sendImageMessage() {
-    if (kDebugMode) {
-      print("SendImageMessage method called.");
+  Future<String> createFolder(String dirName) async {
+    final dir = Directory(
+        '${(Platform.isAndroid ? await getExternalStorageDirectory() //FOR ANDROID
+            : await getApplicationSupportDirectory() //FOR IOS
+        )!.path}/$dirName');
+    var status = await Permission.storage.status;
+    if (!status.isGranted) {
+      await Permission.storage.request();
     }
-    if (kDebugMode) {
-      print("Path: ${imageFile!.path}\n");
+    if ((await dir.exists())) {
+      return dir.path;
+    } else {
+      dir.create();
+      return dir.path;
     }
+  }
+
+  void _sendImageMessage() async {
     if (imageFile != null) {
-      final media = ChatMedia(
-        url: imageFile!.path,
-        type: MediaType.image,
-        fileName: 'test_file',
-      );
-      final message = ChatMessage(
-        user: _currentUser,
-        createdAt: DateTime.now(),
-        medias: [media],
-      );
+      /*final directory = await getApplicationDocumentsDirectory();
+      final imagePath = '${directory.path}/image_${DateTime.now()}.png';
+      await imageFile!.copy(imagePath);*/
+
+      controlImage = File(imageFile!.path);
+
       setState(() {
-        _messages.insert(0, message);
         imageFile = null; // Reset imageFile after sending
       });
+      createFolder('images');
     }
   }
 
@@ -111,6 +220,7 @@ class _ChatPageState extends State<ChatPage> {
         isRecording = false;
         audioPath = path!;
       });
+      createFolder('audio');
     } catch (e) {
       if (kDebugMode) {
         print('Error Stopping Record: $e');
@@ -118,10 +228,15 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> playRecording() async {
+  Future<void> playRecording({String? pathToAudio}) async {
     try {
-      Source urlSource = UrlSource(audioPath);
-      await audioPlayer.play(urlSource);
+      if (pathToAudio == null) {
+        Source urlSource = UrlSource(audioPath);
+        await audioPlayer.play(urlSource);
+      } else {
+        Source urlSource = UrlSource(pathToAudio);
+        await audioPlayer.play(urlSource);
+      }
     } catch (e) {
       if (kDebugMode) {
         print('Error playing Recording: $e');
@@ -134,6 +249,17 @@ class _ChatPageState extends State<ChatPage> {
     super.initState();
     audioPlayer = AudioPlayer();
     audioRecord = Record();
+    // fetch weather on startup
+    _fetchWeather();
+    _fetchTranslator();
+
+    // AI Model
+    _loading = true;
+    loadModel().then((value) {
+      setState(() {
+        _loading = false;
+      });
+    });
   }
 
   @override
@@ -145,6 +271,9 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    weatherText = 'At ${_weather?.cityName ?? "Loading... city"},'
+        ' \nThe Temperature for today is ${_weather?.temperature.round()}°C, '
+        '\n It is going to be ${_weather?.mainConditions ?? ""}.';
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -152,43 +281,28 @@ class _ChatPageState extends State<ChatPage> {
           title: Text(
             "FarmNETS",
             style: TextStyle(
-              color: Theme
-                  .of(context)
-                  .colorScheme
-                  .background,
+              color: Theme.of(context).colorScheme.background,
               fontSize: 24,
             ),
           ),
-          backgroundColor: Theme
-              .of(context)
-              .colorScheme
-              .secondary,
+          backgroundColor: Theme.of(context).colorScheme.secondary,
         ),
         body: Column(
           children: [
             Container(
-              color: Theme
-                  .of(context)
-                  .colorScheme
-                  .secondary,
+              color: Theme.of(context).colorScheme.secondary,
               child: TabBar(
                 tabs: [
                   Tab(
                     icon: Icon(
                       Icons.chat,
-                      color: Theme
-                          .of(context)
-                          .colorScheme
-                          .background,
+                      color: Theme.of(context).colorScheme.background,
                     ),
                   ),
                   Tab(
                     icon: Icon(
                       Icons.cloudy_snowing,
-                      color: Theme
-                          .of(context)
-                          .colorScheme
-                          .background,
+                      color: Theme.of(context).colorScheme.background,
                     ),
                   ),
                 ],
@@ -197,48 +311,41 @@ class _ChatPageState extends State<ChatPage> {
             Expanded(
                 child: TabBarView(
                   children: [
-                    DashChat(
-                      currentUser: _currentUser,
-                      messageOptions: const MessageOptions(
-                          currentUserContainerColor: Colors.green),
-                      onSend: (ChatMessage m) {
-                        getChatMessage(m);
+                    ChatScreen(
+                      sendMessageHintText: '',
+                      scrollController: scrollController,
+                      messages: tryChat.messages,
+                      onSlideToCancelRecord: () {
+                        log('not sent');
                       },
-                      messages: _messages,
-                      inputOptions: InputOptions(
-                        leading: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Row(
-                              children: [
-                                IconButton(
-                                    icon: isRecording
-                                        ? const Icon(Icons.mic)
-                                        : const Icon(Icons.stop),
-                                    onPressed: isRecording
-                                        ? stopRecording
-                                        : startRecording),
-                                IconButton(
-                                    onPressed: playRecording,
-                                    icon: const Icon(Icons.play_arrow))
-                              ],
-                            ),
-                          )
-                        ],
-                        textCapitalization: TextCapitalization.sentences,
-                        inputDecoration: InputDecoration(
-                          border: OutlineInputBorder(
-                              borderSide: const BorderSide(width: 0.5),
-                              borderRadius: BorderRadius.circular(20)),
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          hintText: "Type a message...",
-                          hintStyle: const TextStyle(color: Colors.grey),
-                          prefixIcon: IconButton(
-                              icon: const Icon(Icons.camera_alt_outlined),
-                              onPressed: _capturePhoto),
-                        ),
-                      ),
+                      onTextSubmit: (textMessage) {
+                        setState(() {
+                          tryChat.messages.add(textMessage);
+
+                          scrollController
+                              .jumpTo(scrollController.position.maxScrollExtent + 50);
+                        });
+                      },
+                      handleRecord: (audioMessage, canceled) {
+                        if (!canceled) {
+                          setState(() {
+                            tryChat.messages.add(audioMessage!);
+                            scrollController
+                                .jumpTo(scrollController.position.maxScrollExtent + 90);
+                          });
+                        }
+                      },
+                      handleImageSelect: (imageMessage) async {
+                        if (imageMessage != null) {
+                          setState(() {
+                            tryChat.messages.add(
+                              imageMessage,
+                            );
+                            scrollController
+                                .jumpTo(scrollController.position.maxScrollExtent + 300);
+                          });
+                        }
+                      },
                     ),
                     Center(
                       child: SingleChildScrollView(
@@ -246,11 +353,8 @@ class _ChatPageState extends State<ChatPage> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Image.asset(
-                              'assets/weather_icon.jpg',
-                              width: 220,
-                              height: 220,
-                            ),
+                            Lottie.asset(
+                                getWeatherAnimation(_weather?.mainConditions)),
                             const Text(
                               'Weather',
                               style: TextStyle(
@@ -267,19 +371,10 @@ class _ChatPageState extends State<ChatPage> {
                             ),
                             const SizedBox(height: 40),
                             ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (
-                                              context) => const ChatPage()));
-                                },
+                                onPressed: _fetchTranslator,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor:
-                                  Theme
-                                      .of(context)
-                                      .colorScheme
-                                      .secondary,
+                                  Theme.of(context).colorScheme.secondary,
                                   shape: const CircleBorder(),
                                   minimumSize: const Size(80, 80),
                                   elevation: 6,
@@ -289,64 +384,17 @@ class _ChatPageState extends State<ChatPage> {
                                   color: Colors.white,
                                   size: 40,
                                 )),
+                            const SizedBox(height: 20),
+                            Text(weatherText),
                           ],
                         ),
                       ),
-                    )
+                    ),
                   ],
                 )),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> getChatMessage(ChatMessage m) async {
-    setState(() {
-      _messages.insert(0, m);
-    });
-
-// Dummy response in wait of ChatGPT API
-    String dummyResponse = "Welcome to FarmNETS";
-
-    setState(() {
-      _messages.insert(
-        0,
-        ChatMessage(
-          user: _gptChatUser,
-          createdAt: DateTime.now(),
-          text: dummyResponse,
-        ),
-      );
-    });
-
-/*Message History
-    List<Messages> _messagesHistory = _messages.reversed.map((m) {
-      if (m.user == _currentUser) {
-        return Messages(role: Role.user, content: m.text);
-      } else {
-        return Messages(role: Role.assistant, content: m.text);
-      }
-    }).toList();
-    final request = ChatCompleteText(
-      model: GptTurbo0301ChatModel(),
-      messages: _messagesHistory,
-      maxToken: 200,
-    );
-    final response = await _OpenAI.onChatCompletion(request: request);
-    for (var element in response!.choices) {
-      if (element.message != null) {
-        setState(() {
-          _messages.insert(
-            0,
-            ChatMessage(
-              user: _gptChatUser,
-              createdAt: DateTime.now(),
-              text: element.message!.content,
-            ),
-          );
-        });
-      }
-    }*/
   }
 }

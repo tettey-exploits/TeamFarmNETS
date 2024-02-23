@@ -107,9 +107,9 @@ class _ChatPageState extends State<ChatPage> {
   );
 
   final ChatUser _currentUser =
-      ChatUser(id: '1', firstName: 'User', lastName: 'Account');
+  ChatUser(id: '1', firstName: 'User', lastName: 'Account');
   final ChatUser _gptChatUser =
-      ChatUser(id: '2', firstName: 'Farm', lastName: 'NETS');
+  ChatUser(id: '2', firstName: 'Farm', lastName: 'NETS');
 
   final List<ChatMessage> _messages = <ChatMessage>[];
 
@@ -169,8 +169,8 @@ class _ChatPageState extends State<ChatPage> {
   Future<String> createFolder(String dirName) async {
     final dir = Directory(
         '${(Platform.isAndroid ? await getExternalStorageDirectory() //FOR ANDROID
-                : await getApplicationSupportDirectory() //FOR IOS
-            )!.path}/$dirName');
+            : await getApplicationSupportDirectory() //FOR IOS
+        )!.path}/$dirName');
     var status = await Permission.storage.status;
     if (!status.isGranted) {
       await Permission.storage.request();
@@ -326,95 +326,95 @@ class _ChatPageState extends State<ChatPage> {
             ),
             Expanded(
                 child: TabBarView(
-              children: [
-                DashChat(
-                  currentUser: _currentUser,
-                  messageOptions: const MessageOptions(
-                      currentUserContainerColor: Colors.green),
-                  onSend: (ChatMessage m) {
-                    getChatMessage(m);
-                  },
-                  messages: _messages,
-                  inputOptions: InputOptions(
-                    leading: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Row(
+                  children: [
+                    DashChat(
+                      currentUser: _currentUser,
+                      messageOptions: const MessageOptions(
+                          currentUserContainerColor: Colors.green),
+                      onSend: (ChatMessage m) {
+                        getChatMessage(m);
+                      },
+                      messages: _messages,
+                      inputOptions: InputOptions(
+                        leading: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Row(
+                              children: [
+                                IconButton(
+                                    icon: isRecording
+                                        ? const Icon(Icons.stop)
+                                        : const Icon(Icons.mic),
+                                    onPressed: isRecording
+                                        ? stopRecording
+                                        : startRecording),
+                                IconButton(
+                                    onPressed: playRecording,
+                                    icon: const Icon(Icons.play_arrow))
+                              ],
+                            ),
+                          )
+                        ],
+                        textCapitalization: TextCapitalization.sentences,
+                        inputDecoration: InputDecoration(
+                          border: OutlineInputBorder(
+                              borderSide: const BorderSide(width: 0.5),
+                              borderRadius: BorderRadius.circular(20)),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          hintText: "Type a message...",
+                          hintStyle: const TextStyle(color: Colors.grey),
+                          prefixIcon: IconButton(
+                              icon: const Icon(Icons.camera_alt_outlined),
+                              onPressed: _capturePhoto),
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            IconButton(
-                                icon: isRecording
-                                    ? const Icon(Icons.stop)
-                                    : const Icon(Icons.mic),
-                                onPressed: isRecording
-                                    ? stopRecording
-                                    : startRecording),
-                            IconButton(
-                                onPressed: playRecording,
-                                icon: const Icon(Icons.play_arrow))
+                            Lottie.asset(
+                                getWeatherAnimation(_weather?.mainConditions)),
+                            const Text(
+                              'Weather',
+                              style: TextStyle(
+                                fontSize: 35,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Text(
+                              'Forecasts',
+                              style: TextStyle(
+                                fontSize: 35,
+                                color: Colors.amber,
+                              ),
+                            ),
+                            const SizedBox(height: 40),
+                            ElevatedButton(
+                                onPressed: _fetchTranslator,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                  Theme.of(context).colorScheme.secondary,
+                                  shape: const CircleBorder(),
+                                  minimumSize: const Size(80, 80),
+                                  elevation: 6,
+                                ),
+                                child: const Icon(
+                                  Icons.multitrack_audio,
+                                  color: Colors.white,
+                                  size: 40,
+                                )),
+                            const SizedBox(height: 20),
+                            Text(weatherText),
                           ],
                         ),
-                      )
-                    ],
-                    textCapitalization: TextCapitalization.sentences,
-                    inputDecoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderSide: const BorderSide(width: 0.5),
-                          borderRadius: BorderRadius.circular(20)),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      hintText: "Type a message...",
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      prefixIcon: IconButton(
-                          icon: const Icon(Icons.camera_alt_outlined),
-                          onPressed: _capturePhoto),
-                    ),
-                  ),
-                ),
-                Center(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Lottie.asset(
-                            getWeatherAnimation(_weather?.mainConditions)),
-                        const Text(
-                          'Weather',
-                          style: TextStyle(
-                            fontSize: 35,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Text(
-                          'Forecasts',
-                          style: TextStyle(
-                            fontSize: 35,
-                            color: Colors.amber,
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        ElevatedButton(
-                            onPressed: _fetchTranslator,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.secondary,
-                              shape: const CircleBorder(),
-                              minimumSize: const Size(80, 80),
-                              elevation: 6,
-                            ),
-                            child: const Icon(
-                              Icons.multitrack_audio,
-                              color: Colors.white,
-                              size: 40,
-                            )),
-                        const SizedBox(height: 20),
-                        Text(weatherText),
-                      ],
-                    ),
-                  ),
-                )
-              ],
-            )),
+                      ),
+                    )
+                  ],
+                )),
           ],
         ),
       ),
