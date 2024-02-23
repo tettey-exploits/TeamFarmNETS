@@ -55,6 +55,7 @@ dependencies:
   tflite: ^1.1.2
   #flutter_tflite: ^1.0.1
   chat_package: ^1.0.0
+  google_generative_ai: ^0.2.1
 
 dev_dependencies:
   flutter_test:

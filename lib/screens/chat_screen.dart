@@ -1,3 +1,4 @@
+/*
 import 'dart:io';
 import 'dart:ui';
 import 'dart:ui' as ui;
@@ -185,9 +186,11 @@ class _ChatPageState extends State<ChatPage> {
 
   void _sendImageMessage() async {
     if (imageFile != null) {
-      /*final directory = await getApplicationDocumentsDirectory();
+      */
+/*final directory = await getApplicationDocumentsDirectory();
       final imagePath = '${directory.path}/image_${DateTime.now()}.png';
-      await imageFile!.copy(imagePath);*/
+      await imageFile!.copy(imagePath);*//*
+
 
       controlImage = File(imageFile!.path);
 
@@ -440,4 +443,4 @@ class _ChatPageState extends State<ChatPage> {
       );
     });
   }
-}
+}*/

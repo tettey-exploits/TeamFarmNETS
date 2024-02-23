@@ -1,11 +1,9 @@
 import 'dart:developer';
 import 'dart:io';
-import 'dart:ui';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -19,6 +17,7 @@ import 'package:tflite/tflite.dart';
 import '../Components/services/Text_translator.dart';
 import '../components/services/Text_to_speech.dart';
 import 'package:chat_package/chat_package.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -28,13 +27,14 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
+
   // api key
   final _weatherService = WeatherService('51b6adfd3b1af06d26e10abacb4a3813');
   Weather? _weather;
 
-  final _textTranslate = TextTranslator('2c524c9c68ab4e2da999a3f9d641ba5d');
+  final _textTranslate = TextTranslator('2c524c9c68ab4e2da999a3f9d641ba5d#');
 
-  final _textSpeech = SpeechToText('2c524c9c68ab4e2da999a3f9d641ba5d');
+  final _textSpeech = SpeechToText('2c524c9c68ab4e2da999a3f9d641ba5d#');
 
   _fetchWeather() async {
     // get the current city
@@ -95,14 +95,6 @@ class _ChatPageState extends State<ChatPage> {
         return 'assets/sunny_animation.json';
     }
   }
-
-  final OpenAI _openAI = OpenAI.instance.build(
-    token: OPENAI_API_KEY,
-    baseOption: HttpSetup(
-      receiveTimeout: const Duration(seconds: 5),
-    ),
-    enableLog: true,
-  );
 
 
   final scrollController = ScrollController();

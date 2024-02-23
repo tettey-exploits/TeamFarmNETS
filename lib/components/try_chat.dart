@@ -4,11 +4,8 @@ import 'package:chat_package/models/media/media_type.dart';
 import 'package:flutter/material.dart';
 
 class TryChat {
-
   final BoxDecoration myChatInputFieldDecoration = BoxDecoration(
-    color: Colors.grey,
-    borderRadius: BorderRadius.circular(20.0)
-  );
+      color: Colors.grey, borderRadius: BorderRadius.circular(20.0));
 
   List<ChatMessage> messages = [
     /*ChatMessage(
@@ -28,6 +25,12 @@ class TryChat {
         mediaType: const MediaType.imageMediaType(),
       ),
     ),*/
-    ChatMessage(isSender: false, text: 'Welcome To FarmNETS'),
+    /*ChatMessage(isSender: false, text: 'Welcome To FarmNETS'),*/
+    ChatMessage(
+      isSender: false,
+      chatMedia: ChatMedia(
+          mediaType: const MediaType.audioMediaType(),
+          url: '/storage/emulated/0/Android/data/com.example.test_1/files/audio/welcome_note_3.wav'),
+    )
   ];
 }
