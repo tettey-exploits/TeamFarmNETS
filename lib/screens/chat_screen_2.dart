@@ -27,7 +27,6 @@ class ChatPage extends StatefulWidget {
 }
 
 class _ChatPageState extends State<ChatPage> {
-
   // api key
   final _weatherService = WeatherService('51b6adfd3b1af06d26e10abacb4a3813');
   Weather? _weather;
@@ -61,12 +60,8 @@ class _ChatPageState extends State<ChatPage> {
       final weather = await _textTranslate
           .translateText("It is rainy, the temperature is 40 degrees Celsius");
       _textSpeech.speechText(weather);
-      const textSpeechPath =
-          "/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/Weather_voice.wav";
-      playRecording(pathToAudio: textSpeechPath);
       if (kDebugMode) {
         print(weather);
-        print(textSpeechPath);
       }
     } catch (e) {
       if (kDebugMode) {
@@ -95,7 +90,6 @@ class _ChatPageState extends State<ChatPage> {
         return 'assets/sunny_animation.json';
     }
   }
-
 
   final scrollController = ScrollController();
   TryChat tryChat = TryChat();
@@ -156,8 +150,8 @@ class _ChatPageState extends State<ChatPage> {
   Future<String> createFolder(String dirName) async {
     final dir = Directory(
         '${(Platform.isAndroid ? await getExternalStorageDirectory() //FOR ANDROID
-            : await getApplicationSupportDirectory() //FOR IOS
-        )!.path}/$dirName');
+                : await getApplicationSupportDirectory() //FOR IOS
+            )!.path}/$dirName');
     var status = await Permission.storage.status;
     if (!status.isGranted) {
       await Permission.storage.request();
@@ -236,14 +230,27 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  Future<void> _callGenerativeModel() async {
+    const String apiKey = "AIzaSyBJnAGPttq6Ha4K6bX4uAQDa-TFOioEtEs";
+
+    // For text-only input, use the gemini-pro model
+    final model = GenerativeModel(model: 'gemini-pro', apiKey: apiKey);
+    final content = [Content.text('Write a story about a magic backpack.')];
+    final response = await model.generateContent(content);
+    if (kDebugMode) {
+      print(response.text);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     audioPlayer = AudioPlayer();
     audioRecord = Record();
     // fetch weather on startup
-    _fetchWeather();
+   _fetchWeather();
     _fetchTranslator();
+    _callGenerativeModel();
 
     // AI Model
     _loading = true;
@@ -263,6 +270,9 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    const textSpeechPath =
+        "/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/Weather_voice.wav";
+
     weatherText = 'At ${_weather?.cityName ?? "Loading... city"},'
         ' \nThe Temperature for today is ${_weather?.temperature.round()}°C, '
         '\n It is going to be ${_weather?.mainConditions ?? ""}.';
@@ -302,88 +312,93 @@ class _ChatPageState extends State<ChatPage> {
             ),
             Expanded(
                 child: TabBarView(
-                  children: [
-                    ChatScreen(
-                      sendMessageHintText: '',
-                      scrollController: scrollController,
-                      messages: tryChat.messages,
-                      onSlideToCancelRecord: () {
-                        log('not sent');
-                      },
-                      onTextSubmit: (textMessage) {
-                        setState(() {
-                          tryChat.messages.add(textMessage);
+              children: [
+                ChatScreen(
+                  sendMessageHintText: '',
+                  scrollController: scrollController,
+                  messages: tryChat.messages,
+                  onSlideToCancelRecord: () {
+                    log('not sent');
+                  },
+                  onTextSubmit: (textMessage) {
+                    setState(() {
+                      tryChat.messages.add(textMessage);
 
-                          scrollController
-                              .jumpTo(scrollController.position.maxScrollExtent + 50);
-                        });
-                      },
-                      handleRecord: (audioMessage, canceled) {
-                        if (!canceled) {
-                          setState(() {
-                            tryChat.messages.add(audioMessage!);
-                            scrollController
-                                .jumpTo(scrollController.position.maxScrollExtent + 90);
-                          });
-                        }
-                      },
-                      handleImageSelect: (imageMessage) async {
-                        if (imageMessage != null) {
-                          setState(() {
-                            tryChat.messages.add(
-                              imageMessage,
-                            );
-                            scrollController
-                                .jumpTo(scrollController.position.maxScrollExtent + 300);
-                          });
-                        }
-                      },
-                    ),
-                    Center(
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Lottie.asset(
-                                getWeatherAnimation(_weather?.mainConditions)),
-                            const Text(
-                              'Weather',
-                              style: TextStyle(
-                                fontSize: 35,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const Text(
-                              'Forecasts',
-                              style: TextStyle(
-                                fontSize: 35,
-                                color: Colors.amber,
-                              ),
-                            ),
-                            const SizedBox(height: 40),
-                            ElevatedButton(
-                                onPressed: _fetchTranslator,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                  Theme.of(context).colorScheme.secondary,
-                                  shape: const CircleBorder(),
-                                  minimumSize: const Size(80, 80),
-                                  elevation: 6,
-                                ),
-                                child: const Icon(
-                                  Icons.multitrack_audio,
-                                  color: Colors.white,
-                                  size: 40,
-                                )),
-                            const SizedBox(height: 20),
-                            Text(weatherText),
-                          ],
+                      scrollController.jumpTo(
+                          scrollController.position.maxScrollExtent + 50);
+                    });
+                  },
+                  handleRecord: (audioMessage, canceled) {
+                    if (!canceled) {
+                      setState(() {
+                        tryChat.messages.add(audioMessage!);
+                        scrollController.jumpTo(
+                            scrollController.position.maxScrollExtent + 90);
+                      });
+                    }
+                  },
+                  handleImageSelect: (imageMessage) async {
+                    if (imageMessage != null) {
+                      setState(() {
+                        tryChat.messages.add(
+                          imageMessage,
+                        );
+                        scrollController.jumpTo(
+                            scrollController.position.maxScrollExtent + 300);
+                      });
+                    }
+                  },
+                ),
+                Center(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Lottie.asset(
+                            getWeatherAnimation(_weather?.mainConditions)),
+                        const Text(
+                          'Weather',
+                          style: TextStyle(
+                            fontSize: 35,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
+                        const Text(
+                          'Forecasts',
+                          style: TextStyle(
+                            fontSize: 35,
+                            color: Colors.amber,
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                        ElevatedButton(
+                          //onPressed: _callGenerativeModel,
+                            onPressed: () {
+                              _fetchTranslator();
+                              playRecording(pathToAudio: textSpeechPath);
+                              _callGenerativeModel();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.secondary,
+                              shape: const CircleBorder(),
+                              minimumSize: const Size(80, 80),
+                              elevation: 6,
+                            ),
+                            child: const Icon(
+                              Icons.multitrack_audio,
+                              color: Colors.white,
+                              size: 40,
+                            )),
+                        const SizedBox(height: 20),
+                        Text(weatherText),
+                      ],
                     ),
-                  ],
-                )),
+                  ),
+                ),
+              ],
+            )),
           ],
         ),
       ),
