@@ -1,13 +1,11 @@
 import 'dart:developer';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:chat_gpt_sdk/chat_gpt_sdk.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
-import 'package:test_1/Chat_gpt_API/consts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:test_1/Components/services/weather_service.dart';
 import 'package:test_1/Components/weather_model.dart';
@@ -18,6 +16,7 @@ import '../Components/services/Text_translator.dart';
 import '../components/services/Text_to_speech.dart';
 import 'package:chat_package/chat_package.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import '../components/digits_to_num.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -31,9 +30,9 @@ class _ChatPageState extends State<ChatPage> {
   final _weatherService = WeatherService('51b6adfd3b1af06d26e10abacb4a3813');
   Weather? _weather;
 
-  final _textTranslate = TextTranslator('2c524c9c68ab4e2da999a3f9d641ba5d#');
+  final _textTranslate = TextTranslator('1eb2c5650b6e467db32b87ff60e64f25#');
 
-  final _textSpeech = SpeechToText('2c524c9c68ab4e2da999a3f9d641ba5d#');
+  final _textSpeech = SpeechToText('1eb2c5650b6e467db32b87ff60e64f25#');
 
   _fetchWeather() async {
     // get the current city
@@ -58,9 +57,11 @@ class _ChatPageState extends State<ChatPage> {
   void _fetchTranslator() async {
     try {
       final weather = await _textTranslate
-          .translateText("It is rainy, the temperature is 40 degrees Celsius");
+          .translateText(weatherText);
       _textSpeech.speechText(weather);
       if (kDebugMode) {
+        print(weatherText);
+        print('\n');
         print(weather);
       }
     } catch (e) {
@@ -248,7 +249,7 @@ class _ChatPageState extends State<ChatPage> {
     audioPlayer = AudioPlayer();
     audioRecord = Record();
     // fetch weather on startup
-   _fetchWeather();
+    _fetchWeather();
     _fetchTranslator();
     _callGenerativeModel();
 
@@ -272,14 +273,16 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     const textSpeechPath =
         "/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/Weather_voice.wav";
-
-    weatherText = 'At ${_weather?.cityName ?? "Loading... city"},'
-        ' \nThe Temperature for today is ${_weather?.temperature.round()}°C, '
-        '\n It is going to be ${_weather?.mainConditions ?? ""}.';
+    final tempInWords = _weather?.temperature !=null? getNumberInWords(_weather!.temperature.round().toString()): "";
+    final weatherResponse = 'The weather condition for today is ${_weather?.mainConditions ?? ""} and the temperature is $tempInWords degree celsius';
+    setState(() {
+      weatherText = weatherResponse;
+    });
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
+          centerTitle: true,
           title: Text(
             "FarmNETS",
             style: TextStyle(
@@ -314,7 +317,7 @@ class _ChatPageState extends State<ChatPage> {
                 child: TabBarView(
               children: [
                 ChatScreen(
-                  sendMessageHintText: '',
+                  sendMessageHintText: 'Type your message here',
                   scrollController: scrollController,
                   messages: tryChat.messages,
                   onSlideToCancelRecord: () {
@@ -355,6 +358,9 @@ class _ChatPageState extends State<ChatPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        Text(
+                            _weather?.cityName ?? "Loading... city"
+                        ),
                         Lottie.asset(
                             getWeatherAnimation(_weather?.mainConditions)),
                         const Text(
@@ -373,7 +379,7 @@ class _ChatPageState extends State<ChatPage> {
                         ),
                         const SizedBox(height: 40),
                         ElevatedButton(
-                          //onPressed: _callGenerativeModel,
+                            //onPressed: _callGenerativeModel,
                             onPressed: () {
                               _fetchTranslator();
                               playRecording(pathToAudio: textSpeechPath);

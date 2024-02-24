@@ -31,8 +31,10 @@ class SpeechToText{
 
     if(response.statusCode == 200){
       List<int> audioData = response.bodyBytes;
+
+      /* Create dir isNotExist and save the audio to the file */
       final directoryPath = await createFolder('audio_recorded');
-      final fileName = 'Weather_voice.wav';
+      const fileName = 'Weather_voice.wav';
       final filePath = '$directoryPath/$fileName';
       // Write audio data to the file
       await File(filePath).writeAsBytes(audioData);
@@ -41,6 +43,7 @@ class SpeechToText{
       //throw Exception("Failed to load weather data");
     }
   }
+
   Future<String> createFolder(String dirName) async {
     final dir = Directory(
         '${(Platform.isAndroid ? await getExternalStorageDirectory() //FOR ANDROID
