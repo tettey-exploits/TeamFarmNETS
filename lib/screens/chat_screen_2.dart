@@ -17,6 +17,9 @@ import '../components/services/Text_to_speech.dart';
 import 'package:chat_package/chat_package.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../components/digits_to_num.dart';
+import 'package:chat_package/models/chat_message.dart';
+import 'package:chat_package/models/media/chat_media.dart';
+import 'package:chat_package/models/media/media_type.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -119,7 +122,7 @@ class _ChatPageState extends State<ChatPage> {
 
   classifyImage(File image) async {
     var output = await Tflite.runModelOnImage(
-      path: imageFile!.path,
+      path: imageFilePath!.path,
       numResults: 2,
       threshold: 0.5,
       imageMean: 127.5,
@@ -136,29 +139,32 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   final picker = ImagePicker();
-  File? imageFile;
+
+  File? imageFilePath;
+  File? audioFilePath;
+
   bool isLoading = false;
   String imageUrl = "";
   File? controlImage;
 
-  void _capturePhoto() async {
+  /*void _capturePhoto() async {
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
     if (kDebugMode) {
       print("Picked file: ${pickedFile?.path}");
     }
     if (pickedFile != null) {
       setState(() {
-        imageFile = File(pickedFile.path);
+        imageFilePath = File(pickedFile.path);
         _loading = true;
       });
-      classifyImage(imageFile!);
-      _sendImageMessage();
+      classifyImage(imageFilePath!);
+      //_sendImageMessage();
     } else {
       if (kDebugMode) {
         print("Picked file is null\n");
       }
     }
-  }
+  }*/
 
   Future<String> createFolder(String dirName) async {
     final dir = Directory(
@@ -177,11 +183,11 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void _sendImageMessage() async {
+  /*void _sendImageMessage() async {
     if (imageFile != null) {
-      /*final directory = await getApplicationDocumentsDirectory();
-      final imagePath = '${directory.path}/image_${DateTime.now()}.png';
-      await imageFile!.copy(imagePath);*/
+      //final directory = await getApplicationDocumentsDirectory();
+      //final imagePath = '${directory.path}/image_${DateTime.now()}.png';
+      //await imageFile!.copy(imagePath);
 
       controlImage = File(imageFile!.path);
 
@@ -190,14 +196,14 @@ class _ChatPageState extends State<ChatPage> {
       });
       createFolder('images');
     }
-  }
+  }*/
 
   late Record audioRecord;
   late AudioPlayer audioPlayer;
   bool isRecording = false;
   String audioPath = '';
 
-  Future<void> startRecording() async {
+  /*Future<void> startRecording() async {
     try {
       if (await audioRecord.hasPermission()) {
         await audioRecord.start();
@@ -210,9 +216,9 @@ class _ChatPageState extends State<ChatPage> {
         print('Error Start Recording : $e');
       }
     }
-  }
+  }*/
 
-  Future<void> stopRecording() async {
+  /*Future<void> stopRecording() async {
     try {
       String? path = await audioRecord.stop();
       setState(() {
@@ -225,7 +231,7 @@ class _ChatPageState extends State<ChatPage> {
         print('Error Stopping Record: $e');
       }
     }
-  }
+  }*/
 
   Future<void> playRecording({String? pathToAudio}) async {
     try {
@@ -243,16 +249,23 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  String? geminiResponseText;
+
   Future<void> _callGenerativeModel() async {
     const String apiKey = "AIzaSyBJnAGPttq6Ha4K6bX4uAQDa-TFOioEtEs";
 
     // For text-only input, use the gemini-pro model
-    final model = GenerativeModel(model: 'gemini-pro', apiKey: apiKey);
-    final content = [Content.text('Write a story about a magic backpack.')];
+    final model = GenerativeModel(model: 'gemini-pro', apiKey: apiKey, generationConfig: GenerationConfig(maxOutputTokens: 200));
+    final content = [Content.text('What are the causes and preventive measures for potato blight? Make your response short')];
     final response = await model.generateContent(content);
     if (kDebugMode) {
       print(response.text);
     }
+    setState(() {
+      geminiResponseText = response.text;
+    });
+    var geminiReply = ChatMessage(isSender: false, text: geminiResponseText ?? "...");
+    tryChat.messages.add(geminiReply);
   }
 
   @override
@@ -346,6 +359,9 @@ class _ChatPageState extends State<ChatPage> {
                   },
                   handleRecord: (audioMessage, canceled) {
                     if (!canceled) {
+                      if (kDebugMode) {
+                        print(audioMessage?.chatMedia!.url);
+                      }
                       setState(() {
                         tryChat.messages.add(audioMessage!);
                         scrollController.jumpTo(
@@ -355,10 +371,15 @@ class _ChatPageState extends State<ChatPage> {
                   },
                   handleImageSelect: (imageMessage) async {
                     if (imageMessage != null) {
+                      if (kDebugMode) {
+                        print(imageMessage.chatMedia!.url);
+                      }
                       setState(() {
+                        imageFilePath = File(imageMessage.chatMedia!.url);
                         tryChat.messages.add(
                           imageMessage,
                         );
+                        classifyImage(imageFilePath!);
                         scrollController.jumpTo(
                             scrollController.position.maxScrollExtent + 300);
                       });
