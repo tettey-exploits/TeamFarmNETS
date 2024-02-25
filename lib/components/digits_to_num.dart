@@ -47,3 +47,18 @@ String getNumberInWords(String number) {
   String? word = numbersInWords[number];
   return word ?? "Not found";
 }
+Map<String, String> conditionToSentence = {
+    'Clouds': 'cloudy',
+    'Mist': 'cloudy',
+    'Haze': 'cloudy',
+    'Dusty': 'cloudy',
+    'Rain': 'rainy',
+    'Drizzle': 'drizzles',
+    'Shower rain': 'rainy',
+    'Thunderstorm': 'thunderstorm',
+    'Clear': 'clear',
+  };
+String getConditionToSentence(String condition) {
+  String? wordy = conditionToSentence[condition];
+  return wordy ?? "Not found";
+}

@@ -74,7 +74,7 @@ class _ChatPageState extends State<ChatPage> {
       if (kDebugMode) {
         print(weatherText);
         print('\n');
-        print(weather);
+        print("The Twi weather: $weather");
       }
     } catch (e) {
       if (kDebugMode) {
@@ -82,7 +82,6 @@ class _ChatPageState extends State<ChatPage> {
       }
     }
   }
-
   String getWeatherAnimation(String? mainConditions) {
     if (mainConditions == null) return 'assets/sunny_animation.json';
     switch (mainConditions.toLowerCase()) {
@@ -116,7 +115,6 @@ class _ChatPageState extends State<ChatPage> {
       labels: "assets/labels.txt",
     );
   }
-
   classifyImage(File image) async {
     var output = await Tflite.runModelOnImage(
       path: imageFile!.path,
@@ -125,7 +123,6 @@ class _ChatPageState extends State<ChatPage> {
       imageMean: 127.5,
       imageStd: 127.5,
     );
-
     setState(() {
       _loading = false;
       _outputs = output!;
@@ -262,7 +259,7 @@ class _ChatPageState extends State<ChatPage> {
     audioRecord = Record();
     // fetch weather on startup
     _fetchWeather();
-    _fetchTranslator();
+    //_fetchTranslator();
     _callGenerativeModel();
     _playWelcomeNote();
 
@@ -287,139 +284,170 @@ class _ChatPageState extends State<ChatPage> {
     const textSpeechPath =
         "/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/Weather_voice.wav";
     final tempInWords = _weather?.temperature !=null? getNumberInWords(_weather!.temperature.round().toString()): "";
-    final weatherResponse = 'The weather condition for today is ${_weather?.mainConditions ?? ""} and the temperature is $tempInWords degree celsius';
+    final weatherInSentence = getConditionToSentence(_weather?.mainConditions ?? "");
+    final weatherResponse = 'The weather condition for today is $weatherInSentence and the temperature is $tempInWords degree celsius';
     setState(() {
       weatherText = weatherResponse;
     });
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          centerTitle: true,
-          title: Text(
-            "FarmNETS",
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.background,
-              fontSize: 24,
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+          title: Row(
+            children: [
+              const CircleAvatar(
+                radius: 20,
+                backgroundImage: AssetImage('assets/AgridisScan_logo.png'),
+                backgroundColor: Colors.white,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "FarmNETS",
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.background,
+                  fontSize: 20,
+                ),
+              ),
+            ],
+          ),
+        ),
+        body: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage("assets/chat_background.jpg"),
+              fit: BoxFit.cover,
+              opacity: 0.3,
             ),
           ),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-        ),
-        body: Column(
-          children: [
-            Container(
-              color: Theme.of(context).colorScheme.secondary,
-              child: TabBar(
-                tabs: [
-                  Tab(
-                    icon: Icon(
-                      Icons.chat,
-                      color: Theme.of(context).colorScheme.background,
+          child: Column(
+            children: [
+              Container(
+                color: Theme.of(context).colorScheme.secondary,
+                child: TabBar(
+                  indicator: const UnderlineTabIndicator(
+                    borderSide: BorderSide(
+                      width: 3,
+                      color: Colors.amber,
                     ),
+                    insets: EdgeInsets.symmetric(horizontal: 100),
                   ),
-                  Tab(
-                    icon: Icon(
-                      Icons.cloudy_snowing,
-                      color: Theme.of(context).colorScheme.background,
+                  tabs: [
+                    Tab(
+                      icon: Icon(
+                        Icons.chat,
+                        color: Theme.of(context).colorScheme.background,
+                      ),
                     ),
-                  ),
-                ],
+                    Tab(
+                      icon: Icon(
+                        Icons.cloudy_snowing,
+                        color: Theme.of(context).colorScheme.background,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-                child: TabBarView(
-              children: [
-                ChatScreen(
-                  sendMessageHintText: 'Type your message here',
-                  scrollController: scrollController,
-                  messages: tryChat.messages,
-                  onSlideToCancelRecord: () {
-                    log('not sent');
-                  },
-                  onTextSubmit: (textMessage) {
-                    setState(() {
-                      tryChat.messages.add(textMessage);
+              Expanded(
+                  child: TabBarView(
+                    children: [
+                      ChatScreen(
+                        sendMessageHintText: 'Type your message here',
+                        scrollController: scrollController,
+                        messages: tryChat.messages,
+                        onSlideToCancelRecord: () {
+                          log('not sent');
+                        },
+                        onTextSubmit: (textMessage) {
+                          setState(() {
+                            tryChat.messages.add(textMessage);
 
-                      scrollController.jumpTo(
-                          scrollController.position.maxScrollExtent + 50);
-                    });
-                  },
-                  handleRecord: (audioMessage, canceled) {
-                    if (!canceled) {
-                      setState(() {
-                        tryChat.messages.add(audioMessage!);
-                        scrollController.jumpTo(
-                            scrollController.position.maxScrollExtent + 90);
-                      });
-                    }
-                  },
-                  handleImageSelect: (imageMessage) async {
-                    if (imageMessage != null) {
-                      setState(() {
-                        tryChat.messages.add(
-                          imageMessage,
-                        );
-                        scrollController.jumpTo(
-                            scrollController.position.maxScrollExtent + 300);
-                      });
-                    }
-                  },
-                ),
-                Center(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                            _weather?.cityName ?? "Loading... city"
-                        ),
-                        Lottie.asset(
-                            getWeatherAnimation(_weather?.mainConditions)),
-                        const Text(
-                          'Weather',
-                          style: TextStyle(
-                            fontSize: 35,
-                            fontWeight: FontWeight.bold,
+                            scrollController.jumpTo(
+                                scrollController.position.maxScrollExtent + 50);
+                          });
+                        },
+                        handleRecord: (audioMessage, canceled) {
+                          if (!canceled) {
+                            setState(() {
+                              tryChat.messages.add(audioMessage!);
+                              scrollController.jumpTo(
+                                  scrollController.position.maxScrollExtent + 90);
+                            });
+                          }
+                        },
+                        handleImageSelect: (imageMessage) async {
+                          if (imageMessage != null) {
+                            setState(() {
+                              tryChat.messages.add(
+                                imageMessage,
+                              );
+                              scrollController.jumpTo(
+                                  scrollController.position.maxScrollExtent + 300);
+                            });
+                          }
+                        },
+                      ),
+                      Center(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Lottie.asset(
+                                  getWeatherAnimation(_weather?.mainConditions)),
+                              Text(
+                                _weather?.cityName ?? "Loading... city",
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                ),
+                              ),
+                              const Text(
+                                'Weather',
+                                style: TextStyle(
+                                  fontSize: 35,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Text(
+                                'Forecasts',
+                                style: TextStyle(
+                                  fontSize: 40,
+                                  color: Colors.amber,
+                                ),
+                              ),
+                              const SizedBox(height: 40),
+                              ElevatedButton(
+                                //onPressed: _callGenerativeModel,
+                                  onPressed: () {
+                                    _fetchTranslator();
+                                    playRecording(pathToAudio: textSpeechPath);
+                                    _callGenerativeModel();
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                    Theme.of(context).colorScheme.secondary,
+                                    shape: const CircleBorder(),
+                                    minimumSize: const Size(80, 80),
+                                    elevation: 6,
+                                  ),
+                                  child: const Icon(
+                                    Icons.multitrack_audio,
+                                    color: Colors.white,
+                                    size: 40,
+                                  )),
+                              const SizedBox(height: 20),
+
+                            ],
                           ),
                         ),
-                        const Text(
-                          'Forecasts',
-                          style: TextStyle(
-                            fontSize: 35,
-                            color: Colors.amber,
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        ElevatedButton(
-                            //onPressed: _callGenerativeModel,
-                            onPressed: () {
-                              _fetchTranslator();
-                              playRecording(pathToAudio: textSpeechPath);
-                              _callGenerativeModel();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  Theme.of(context).colorScheme.secondary,
-                              shape: const CircleBorder(),
-                              minimumSize: const Size(80, 80),
-                              elevation: 6,
-                            ),
-                            child: const Icon(
-                              Icons.multitrack_audio,
-                              color: Colors.white,
-                              size: 40,
-                            )),
-                        const SizedBox(height: 20),
-                        Text(weatherText),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            )),
-          ],
+                      ),
+                    ],
+                  )),
+            ],
+          ),
         ),
+
       ),
     );
   }
