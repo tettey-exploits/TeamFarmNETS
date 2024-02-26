@@ -15,6 +15,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:test_1/components/try_chat.dart';
 import 'package:tflite/tflite.dart';
 import '../components/digits_to_num.dart';
+import '../components/services/speect_to_text.dart';
 import '../components/services/text_translator.dart';
 import '../components/services/text_to_speech.dart';
 import 'package:chat_package/chat_package.dart';
@@ -30,19 +31,14 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
 
   Future<void> _playWelcomeNote() async {
-    const welcomeNotePath =
-        '/storage/emulated/0/Android/data/com.example.test_1/files/audio/welcome_note_3.wav';
-    try {
-      Source urlSource = UrlSource(welcomeNotePath);
-      await audioPlayer.play(urlSource);
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error playing Recording: $e');
-      }
-    }
+    String translatedWelcome = await _textTranslate.translateText("Welcome. My name is Abena. How may I help you?");
+    _textSpeech.textToSpeech(translatedWelcome, textContentType: 0);
+
+    const welcomeNotePath = '/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/welcome_note_3.wav';
+    playRecording(pathToAudio: welcomeNotePath);
   }
 
-  // api key
+  /// api key
   final _weatherService = WeatherService('51b6adfd3b1af06d26e10abacb4a3813');
   Weather? _weather;
 
@@ -51,6 +47,8 @@ class _ChatPageState extends State<ChatPage> {
 
   //final _textSpeech = TextToSpeech('1eb2c5650b6e467db32b87ff60e64f25');
   final _textSpeech = TextToSpeech('b751d61514ce47cd958348531dad1cb2');
+
+  final _speechText = SpeechToText('b751d61514ce47cd958348531dad1cb2');
 
   _fetchWeather() async {
     String cityName = await _weatherService.getCurrentCity();
@@ -73,7 +71,7 @@ class _ChatPageState extends State<ChatPage> {
   void _translateForWeather() async {
     try {
       final weather = await _textTranslate.translateText(weatherText);
-      _textSpeech.textToSpeech(weather, isWeatherText: true);
+      _textSpeech.textToSpeech(weather, textContentType: 1);
       if (kDebugMode) {
         print(weatherText);
         print('\n');
@@ -141,10 +139,10 @@ class _ChatPageState extends State<ChatPage> {
     if (kDebugMode) {
       print(translatedText);
     }
-    _textSpeech.textToSpeech(translatedText, isWeatherText: false);
+    _textSpeech.textToSpeech(translatedText, textContentType: 3);
 
     const diseaseAudioPath =
-        '/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/Gemini_voice.wav';
+        '/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/crop_disease_voice.wav';
     ChatMessage detectedDiseaseAudio = ChatMessage(
         isSender: false,
         chatMedia: ChatMedia(
@@ -199,7 +197,7 @@ class _ChatPageState extends State<ChatPage> {
       try {
         final geminiTwi =
             await _textTranslate.translateText(geminiResponseText!);
-        _textSpeech.textToSpeech(geminiTwi, isWeatherText: false);
+        _textSpeech.textToSpeech(geminiTwi, textContentType: 2);
         if (kDebugMode) {
           print("Gemini response: $geminiResponseText\n $geminiTwi");
         }
@@ -231,7 +229,7 @@ class _ChatPageState extends State<ChatPage> {
       geminiResponseText = response.text;
     });
     String? geminiVoice = await _translateForGemini();
-    _textSpeech.textToSpeech(geminiVoice!, isWeatherText: false);
+    _textSpeech.textToSpeech(geminiVoice!, textContentType: 2);
 
     // Return the response from the generative model
     return geminiResponseText;
@@ -367,15 +365,14 @@ class _ChatPageState extends State<ChatPage> {
                           tryChat.messages.add(geminiVoiceMessage);
                         });
                       }
-
                       // Scroll to the bottom of the chat after adding the messages
                       scrollController.jumpTo(scrollController.position.maxScrollExtent);
                     },
                     handleRecord: (audioMessage, canceled) {
                       if (!canceled) {
+                        _speechText.speechToText(audioMessage!.chatMedia!.url);
                         if (kDebugMode) {
-                          print(
-                              "Audio path = ${audioMessage?.chatMedia?.url}\n");
+                          print("Audio path = ${audioMessage?.chatMedia?.url}\n");
                         }
                         setState(() {
                           tryChat.messages.add(audioMessage!);
@@ -431,7 +428,6 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                           const SizedBox(height: 40),
                           ElevatedButton(
-                              //onPressed: _callGenerativeModel,
                               onPressed: () {
                                 _translateForWeather();
                                 playRecording(pathToAudio: textSpeechPath);

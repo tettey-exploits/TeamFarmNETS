@@ -1,10 +1,8 @@
 import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../weather_model.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 
@@ -14,7 +12,7 @@ class TextToSpeech {
 
   TextToSpeech(this.apiKey);
 
-  Future<void> textToSpeech(String text, {String? targetLanguage, required bool isWeatherText}) async {
+  Future<void> textToSpeech(String text, {String? targetLanguage, required int textContentType}) async {
     final response = await http.post(Uri.parse(BASE_URL),
         headers: {
           "Content-Type": "application/json",
@@ -26,16 +24,26 @@ class TextToSpeech {
     if (response.statusCode == 200) {
       List<int> audioData = response.bodyBytes;
 
-      /* Create dir isNotExist and save the audio to the file */
+      /// Create dir isNotExist and save the audio to the file
       final directoryPath = await createFolder('audio_recorded');
-      final fileName = isWeatherText == true ? 'Weather_voice.wav': 'Gemini_voice.wav';
+
+      late final String fileName;
+      if (textContentType == 0) {
+        fileName = "welcome_note_3.wav";
+      } else if (textContentType == 1) {
+        fileName = "Weather_voice.wav";
+      } else if (textContentType == 2) {
+        fileName = "Gemini_voice.wav";
+      } else if (textContentType == 3) {
+        fileName = "crop_disease_voice.wav";
+      }
+
       final filePath = '$directoryPath/$fileName';
-      // Write audio data to the file
+      /// Write audio data to the file
       await File(filePath).writeAsBytes(audioData);
 
     } else {
       throw Exception("Failed to fetch audio data: ${response.statusCode}");
-      //throw Exception("Failed to load weather data");
     }
   }
 

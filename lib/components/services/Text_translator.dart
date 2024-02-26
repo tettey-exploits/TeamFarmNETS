@@ -1,9 +1,6 @@
-
 import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import '../weather_model.dart';
 import 'package:http/http.dart' as http;
 
 class TextTranslator{
@@ -25,11 +22,10 @@ class TextTranslator{
           })
     );
 
-    if(response.statusCode ==200){
+    if(response.statusCode == 200){
       return jsonDecode(response.body);
     } else {
       return response.statusCode.toString();
-      //throw Exception("Failed to load weather data");
     }
   }
   Future<String> getCurrentCity() async{
@@ -46,15 +42,8 @@ class TextTranslator{
     // convert the location into a list of placemark objects
     List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
 
-
     //extract the city name from the first placemark
     String? city = placemarks[0].locality;
     return city?? "";
-
-
-
-
   }
-
-
 }
