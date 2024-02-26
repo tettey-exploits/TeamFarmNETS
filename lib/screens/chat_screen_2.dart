@@ -1,22 +1,24 @@
 import 'dart:developer';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:chat_package/models/chat_message.dart';
+import 'package:chat_package/models/media/chat_media.dart';
+import 'package:chat_package/models/media/media_type.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:record/record.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:test_1/Components/services/weather_service.dart';
-import 'package:test_1/Components/weather_model.dart';
+import 'package:test_1/components/crop_diseases.dart';
+import 'package:test_1/components/services/weather_service.dart';
+import 'package:test_1/components/weather_model.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:test_1/components/try_chat.dart';
 import 'package:tflite/tflite.dart';
-import '../Components/services/Text_translator.dart';
-import '../components/services/Text_to_speech.dart';
+import '../components/digits_to_num.dart';
+import '../components/services/text_translator.dart';
+import '../components/services/text_to_speech.dart';
 import 'package:chat_package/chat_package.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import '../components/digits_to_num.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);
@@ -28,28 +30,30 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
 
   Future<void> _playWelcomeNote() async {
-    const welcomeNotePath = '/storage/emulated/0/Android/data/com.example.test_1/files/audio/welcome_note_3.wav';
+    const welcomeNotePath =
+        '/storage/emulated/0/Android/data/com.example.test_1/files/audio/welcome_note_3.wav';
     try {
       Source urlSource = UrlSource(welcomeNotePath);
       await audioPlayer.play(urlSource);
-        } catch (e) {
+    } catch (e) {
       if (kDebugMode) {
         print('Error playing Recording: $e');
       }
     }
   }
+
   // api key
   final _weatherService = WeatherService('51b6adfd3b1af06d26e10abacb4a3813');
   Weather? _weather;
 
-  final _textTranslate = TextTranslator('1eb2c5650b6e467db32b87ff60e64f25#');
+  //final _textTranslate = TextTranslator('1eb2c5650b6e467db32b87ff60e64f25');
+  final _textTranslate = TextTranslator('b751d61514ce47cd958348531dad1cb2');
 
-  final _textSpeech = SpeechToText('1eb2c5650b6e467db32b87ff60e64f25#');
+  //final _textSpeech = TextToSpeech('1eb2c5650b6e467db32b87ff60e64f25');
+  final _textSpeech = TextToSpeech('b751d61514ce47cd958348531dad1cb2');
 
   _fetchWeather() async {
-    // get the current city
     String cityName = await _weatherService.getCurrentCity();
-    // get weather for city
     try {
       final weather = await _weatherService.getWeather(cityName);
       setState(() {
@@ -66,11 +70,10 @@ class _ChatPageState extends State<ChatPage> {
 
   String weatherText = '';
 
-  void _fetchTranslator() async {
+  void _translateForWeather() async {
     try {
-      final weather = await _textTranslate
-          .translateText(weatherText);
-      _textSpeech.speechText(weather);
+      final weather = await _textTranslate.translateText(weatherText);
+      _textSpeech.textToSpeech(weather, isWeatherText: true);
       if (kDebugMode) {
         print(weatherText);
         print('\n');
@@ -82,6 +85,7 @@ class _ChatPageState extends State<ChatPage> {
       }
     }
   }
+
   String getWeatherAnimation(String? mainConditions) {
     if (mainConditions == null) return 'assets/sunny_animation.json';
     switch (mainConditions.toLowerCase()) {
@@ -115,47 +119,43 @@ class _ChatPageState extends State<ChatPage> {
       labels: "assets/labels.txt",
     );
   }
+
   classifyImage(File image) async {
     var output = await Tflite.runModelOnImage(
-      path: imageFile!.path,
+      path: imageFilePath!.path,
       numResults: 2,
       threshold: 0.5,
-      imageMean: 127.5,
-      imageStd: 127.5,
+      imageMean: 255,
+      imageStd: 255,
     );
     setState(() {
       _loading = false;
       _outputs = output!;
     });
     if (kDebugMode) {
-      print(_outputs);
+      print(_outputs[0]["label"].toString());
     }
-  }
 
-  final picker = ImagePicker();
-  File? imageFile;
-  bool isLoading = false;
-  String imageUrl = "";
-  File? controlImage;
-
-  void _capturePhoto() async {
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    String diseaseFeature = getDiseaseFeature(_outputs[0]["label"].toString());
+    String translatedText = await _textTranslate.translateText(diseaseFeature);
     if (kDebugMode) {
-      print("Picked file: ${pickedFile?.path}");
+      print(translatedText);
     }
-    if (pickedFile != null) {
-      setState(() {
-        imageFile = File(pickedFile.path);
-        _loading = true;
-      });
-      classifyImage(imageFile!);
-      _sendImageMessage();
-    } else {
-      if (kDebugMode) {
-        print("Picked file is null\n");
-      }
-    }
+    _textSpeech.textToSpeech(translatedText, isWeatherText: false);
+
+    const diseaseAudioPath =
+        '/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/Gemini_voice.wav';
+    ChatMessage detectedDiseaseAudio = ChatMessage(
+        isSender: false,
+        chatMedia: ChatMedia(
+            url: diseaseAudioPath, mediaType: const MediaType.audioMediaType()));
+    setState(() {
+      tryChat.messages.add(detectedDiseaseAudio);
+    });
   }
+
+  File? imageFilePath;
+  String imageUrl = "";
 
   Future<String> createFolder(String dirName) async {
     final dir = Directory(
@@ -174,55 +174,9 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  void _sendImageMessage() async {
-    if (imageFile != null) {
-      /*final directory = await getApplicationDocumentsDirectory();
-      final imagePath = '${directory.path}/image_${DateTime.now()}.png';
-      await imageFile!.copy(imagePath);*/
-
-      controlImage = File(imageFile!.path);
-
-      setState(() {
-        imageFile = null; // Reset imageFile after sending
-      });
-      createFolder('images');
-    }
-  }
-
-  late Record audioRecord;
   late AudioPlayer audioPlayer;
   bool isRecording = false;
   String audioPath = '';
-
-  Future<void> startRecording() async {
-    try {
-      if (await audioRecord.hasPermission()) {
-        await audioRecord.start();
-        setState(() {
-          isRecording = true;
-        });
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error Start Recording : $e');
-      }
-    }
-  }
-
-  Future<void> stopRecording() async {
-    try {
-      String? path = await audioRecord.stop();
-      setState(() {
-        isRecording = false;
-        audioPath = path!;
-      });
-      createFolder('audio');
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error Stopping Record: $e');
-      }
-    }
-  }
 
   Future<void> playRecording({String? pathToAudio}) async {
     try {
@@ -240,27 +194,56 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> _callGenerativeModel() async {
+  Future<String?> _translateForGemini() async {
+    if (geminiResponseText != null) {
+      try {
+        final geminiTwi =
+            await _textTranslate.translateText(geminiResponseText!);
+        _textSpeech.textToSpeech(geminiTwi, isWeatherText: false);
+        if (kDebugMode) {
+          print("Gemini response: $geminiResponseText\n $geminiTwi");
+        }
+        return geminiTwi;
+      } catch (e) {
+        if (kDebugMode) {
+          print(e);
+        }
+      }
+    }
+  }
+
+  String? geminiResponseText;
+
+  Future<String?> _callGenerativeModel({String? prompt}) async {
     const String apiKey = "AIzaSyBJnAGPttq6Ha4K6bX4uAQDa-TFOioEtEs";
 
     // For text-only input, use the gemini-pro model
-    final model = GenerativeModel(model: 'gemini-pro', apiKey: apiKey);
-    final content = [Content.text('Write a story about a magic backpack.')];
+    final model = GenerativeModel(
+        model: 'gemini-pro',
+        apiKey: apiKey,
+        generationConfig: GenerationConfig(maxOutputTokens: 300));
+    final content = [
+      Content.text(prompt ?? 'Respond with this string only: "Welcome User"')
+    ];
     final response = await model.generateContent(content);
-    if (kDebugMode) {
-      print(response.text);
-    }
+
+    setState(() {
+      geminiResponseText = response.text;
+    });
+    String? geminiVoice = await _translateForGemini();
+    _textSpeech.textToSpeech(geminiVoice!, isWeatherText: false);
+
+    // Return the response from the generative model
+    return geminiResponseText;
   }
 
   @override
   void initState() {
     super.initState();
     audioPlayer = AudioPlayer();
-    audioRecord = Record();
     // fetch weather on startup
     _fetchWeather();
-    //_fetchTranslator();
-    _callGenerativeModel();
+    _translateForWeather();
     _playWelcomeNote();
 
     // AI Model
@@ -276,16 +259,19 @@ class _ChatPageState extends State<ChatPage> {
   void dispose() {
     super.dispose();
     audioPlayer.dispose();
-    audioRecord.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     const textSpeechPath =
         "/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/Weather_voice.wav";
-    final tempInWords = _weather?.temperature !=null? getNumberInWords(_weather!.temperature.round().toString()): "";
-    final weatherInSentence = getConditionToSentence(_weather?.mainConditions ?? "");
-    final weatherResponse = 'The weather condition for today is $weatherInSentence and the temperature is $tempInWords degree celsius';
+    final tempInWords = _weather?.temperature != null
+        ? getNumberInWords(_weather!.temperature.round().toString())
+        : "";
+    final weatherInSentence =
+        getConditionToSentence(_weather?.mainConditions ?? "");
+    final weatherResponse =
+        'The weather condition for today is $weatherInSentence and the temperature is $tempInWords degree celsius';
     setState(() {
       weatherText = weatherResponse;
     });
@@ -351,103 +337,127 @@ class _ChatPageState extends State<ChatPage> {
               ),
               Expanded(
                   child: TabBarView(
-                    children: [
-                      ChatScreen(
-                        sendMessageHintText: 'Type your message here',
-                        scrollController: scrollController,
-                        messages: tryChat.messages,
-                        onSlideToCancelRecord: () {
-                          log('not sent');
-                        },
-                        onTextSubmit: (textMessage) {
-                          setState(() {
-                            tryChat.messages.add(textMessage);
+                children: [
+                  ChatScreen(
+                    sendMessageHintText: 'Type your message here',
+                    scrollController: scrollController,
+                    messages: tryChat.messages,
+                    chatInputFieldPadding:
+                        const EdgeInsets.symmetric(horizontal: 12),
+                    onSlideToCancelRecord: () {
+                      log('not sent');
+                    },
+                    onTextSubmit: (textMessage) async {
+                      setState(() {
+                        tryChat.messages.add(textMessage);
+                      });
 
-                            scrollController.jumpTo(
-                                scrollController.position.maxScrollExtent + 50);
-                          });
-                        },
-                        handleRecord: (audioMessage, canceled) {
-                          if (!canceled) {
-                            setState(() {
-                              tryChat.messages.add(audioMessage!);
-                              scrollController.jumpTo(
-                                  scrollController.position.maxScrollExtent + 90);
-                            });
-                          }
-                        },
-                        handleImageSelect: (imageMessage) async {
-                          if (imageMessage != null) {
-                            setState(() {
-                              tryChat.messages.add(
-                                imageMessage,
-                              );
-                              scrollController.jumpTo(
-                                  scrollController.position.maxScrollExtent + 300);
-                            });
-                          }
-                        },
-                      ),
-                      Center(
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Lottie.asset(
-                                  getWeatherAnimation(_weather?.mainConditions)),
-                              Text(
-                                _weather?.cityName ?? "Loading... city",
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                ),
-                              ),
-                              const Text(
-                                'Weather',
-                                style: TextStyle(
-                                  fontSize: 35,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Text(
-                                'Forecasts',
-                                style: TextStyle(
-                                  fontSize: 40,
-                                  color: Colors.amber,
-                                ),
-                              ),
-                              const SizedBox(height: 40),
-                              ElevatedButton(
-                                //onPressed: _callGenerativeModel,
-                                  onPressed: () {
-                                    _fetchTranslator();
-                                    playRecording(pathToAudio: textSpeechPath);
-                                    _callGenerativeModel();
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor:
-                                    Theme.of(context).colorScheme.secondary,
-                                    shape: const CircleBorder(),
-                                    minimumSize: const Size(80, 80),
-                                    elevation: 6,
-                                  ),
-                                  child: const Icon(
-                                    Icons.multitrack_audio,
-                                    color: Colors.white,
-                                    size: 40,
-                                  )),
-                              const SizedBox(height: 20),
+                      // Call _callGenerativeModel and wait for the response
+                      String? geminiResponse = await _callGenerativeModel(prompt: textMessage.text);
 
-                            ],
+                      // Once you have the response, create the audio ChatMessage and add it to the chat messages list
+                      if (geminiResponse != null) {
+                        const geminiVoicePath = "/storage/emulated/0/Android/data/com.example.test_1/files/audio_recorded/Gemini_voice.wav";
+                        ChatMessage geminiVoiceMessage = ChatMessage(
+                            isSender: false,
+                            chatMedia: ChatMedia(url: geminiVoicePath, mediaType: const MediaType.audioMediaType())
+                        );
+
+                        setState(() {
+                          tryChat.messages.add(geminiVoiceMessage);
+                        });
+                      }
+
+                      // Scroll to the bottom of the chat after adding the messages
+                      scrollController.jumpTo(scrollController.position.maxScrollExtent);
+                    },
+                    handleRecord: (audioMessage, canceled) {
+                      if (!canceled) {
+                        if (kDebugMode) {
+                          print(
+                              "Audio path = ${audioMessage?.chatMedia?.url}\n");
+                        }
+                        setState(() {
+                          tryChat.messages.add(audioMessage!);
+                          scrollController.jumpTo(
+                              scrollController.position.maxScrollExtent + 90);
+                        });
+                      }
+                    },
+                    handleImageSelect: (imageMessage) async {
+                      if (imageMessage != null) {
+                        setState(() async {
+                          /// Get the path to the image file
+                          imageFilePath = File(imageMessage.chatMedia!.url);
+                          tryChat.messages.add(
+                            imageMessage,
+                          );
+
+                          /// Call the model to do the classification
+                          await classifyImage(imageFilePath!);
+                          scrollController.jumpTo(
+                              scrollController.position.maxScrollExtent + 300);
+                        });
+                      }
+                    },
+                  ),
+                  Center(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Lottie.asset(
+                              getWeatherAnimation(_weather?.mainConditions)),
+                          Text(
+                            _weather?.cityName ?? "Loading... city",
+                            style: const TextStyle(
+                              fontSize: 20,
+                            ),
                           ),
-                        ),
+                          const Text(
+                            'Weather',
+                            style: TextStyle(
+                              fontSize: 35,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Text(
+                            'Forecasts',
+                            style: TextStyle(
+                              fontSize: 40,
+                              color: Colors.amber,
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                          ElevatedButton(
+                              //onPressed: _callGenerativeModel,
+                              onPressed: () {
+                                _translateForWeather();
+                                playRecording(pathToAudio: textSpeechPath);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Theme.of(context).colorScheme.secondary,
+                                shape: const CircleBorder(),
+                                minimumSize: const Size(80, 80),
+                                elevation: 6,
+                              ),
+                              child: const Icon(
+                                Icons.multitrack_audio,
+                                color: Colors.white,
+                                size: 40,
+                              )),
+                          const SizedBox(height: 20),
+                        ],
                       ),
-                    ],
-                  )),
+                    ),
+                  ),
+                ],
+              )),
             ],
           ),
         ),
-
       ),
     );
   }

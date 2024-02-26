@@ -1,20 +1,20 @@
-A
-B
-C
+Corn Cercospora Leaf Spot
+Corn Common Rust
+Corn Healthy
+Corn Northern Leaf Blight
+Corn Streak
+Pepper Cercospora
+Pepper Fusarium
+Pepper Healthy
+Pepper Leaf Blight
+Pepper Leaf Curl
+Pepper Leaf Mosaic
+Pepper Septoria
+Tomato Early Blight
+Tomato Fusarium
+Tomato Healthy
+Tomato Late Blight
+Tomato Leaf Curl
+Tomato Mosaic
+Tomato Septoria
 D
-E
-F
-G
-H
-I
-J
-K
-L
-M
-N
-O
-P
-Q
-R
-S
-T

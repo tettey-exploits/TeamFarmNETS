@@ -18,10 +18,10 @@ import 'package:test_1/Components/weather_model.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:test_1/components/classify_image.dart';
 import 'package:tflite/tflite.dart';
-import '../Components/services/Text_translator.dart';
+import '../Components/services/text_translator.dart';
 import 'package:image/image.dart' as Imagi;
 
-import '../components/services/Text_to_speech.dart';
+import '../components/services/text_to_speech.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({Key? key}) : super(key: key);

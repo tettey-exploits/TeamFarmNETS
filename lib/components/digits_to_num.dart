@@ -47,6 +47,7 @@ String getNumberInWords(String number) {
   String? word = numbersInWords[number];
   return word ?? "Not found";
 }
+
 Map<String, String> conditionToSentence = {
     'Clouds': 'cloudy',
     'Mist': 'cloudy',
