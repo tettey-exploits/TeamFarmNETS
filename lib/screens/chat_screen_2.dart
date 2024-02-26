@@ -43,12 +43,15 @@ class _ChatPageState extends State<ChatPage> {
   Weather? _weather;
 
   //final _textTranslate = TextTranslator('1eb2c5650b6e467db32b87ff60e64f25');
-  final _textTranslate = TextTranslator('b751d61514ce47cd958348531dad1cb2');
+  //final _textTranslate = TextTranslator('b751d61514ce47cd958348531dad1cb2');
+  final _textTranslate = TextTranslator('63a22bc0561f4844972dc905bb0f5145');
 
   //final _textSpeech = TextToSpeech('1eb2c5650b6e467db32b87ff60e64f25');
-  final _textSpeech = TextToSpeech('b751d61514ce47cd958348531dad1cb2');
+  //final _textSpeech = TextToSpeech('b751d61514ce47cd958348531dad1cb2');
+  final _textSpeech = TextToSpeech('63a22bc0561f4844972dc905bb0f5145');
 
-  final _speechText = SpeechToText('b751d61514ce47cd958348531dad1cb2');
+  //final _speechText = SpeechToText('b751d61514ce47cd958348531dad1cb2');
+  final _speechText = SpeechToText('63a22bc0561f4844972dc905bb0f5145');
 
   _fetchWeather() async {
     String cityName = await _weatherService.getCurrentCity();
@@ -368,11 +371,12 @@ class _ChatPageState extends State<ChatPage> {
                       // Scroll to the bottom of the chat after adding the messages
                       scrollController.jumpTo(scrollController.position.maxScrollExtent);
                     },
-                    handleRecord: (audioMessage, canceled) {
+                    handleRecord: (audioMessage, canceled) async {
                       if (!canceled) {
-                        _speechText.speechToText(audioMessage!.chatMedia!.url);
+                        var transcribedText = await _speechText.speechToText(audioMessage!.chatMedia!.url);
+                        var translatedText = await _textTranslate.translateText(transcribedText!);
                         if (kDebugMode) {
-                          print("Audio path = ${audioMessage?.chatMedia?.url}\n");
+                          print("In English: $translatedText");
                         }
                         setState(() {
                           tryChat.messages.add(audioMessage!);
