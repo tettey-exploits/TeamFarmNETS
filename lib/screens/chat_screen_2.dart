@@ -374,6 +374,7 @@ class _ChatPageState extends State<ChatPage> {
                     handleRecord: (audioMessage, canceled) async {
                       if (!canceled) {
                         var transcribedText = await _speechText.speechToText(audioMessage!.chatMedia!.url);
+                        transcribedText = transcribedText?.replaceAll('\\', '').replaceAll('"', '');
                         var translatedText = await _textTranslate.translateText(transcribedText!);
                         if (kDebugMode) {
                           print("In English: $translatedText");
